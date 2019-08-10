@@ -4,11 +4,16 @@ from sc2reader.events import PlayerStatsEvent, UnitTypeChangeEvent, UnitBornEven
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 from collections import defaultdict
 
+def real_seconds(game_seconds):
+    """ converts from game seconds (faster speed) to wall clock seconds """
+    return game_seconds / float(1.4)
+
 def timestamp(game_seconds):
-    real_seconds = game_seconds / float(1.4) # convert from faster to wall clock
-    return "%02.i:%02.i" % (int(real_seconds / 60), int(real_seconds % 60))
+    sec = real_seconds(game_seconds) 
+    return "%02.i:%02.i" % (int(sec / 60), int(sec % 60))
 
 class Tracker(object):
     LARVA = 'Larva'
@@ -47,11 +52,10 @@ class Tracker(object):
 
         res = []
         for event in rep.tracker_events:
-            # print event
             if isinstance(event, PlayerStatsEvent) and event.player.name.startswith(ME):
 
                 # smuggling in our counts alongside game's periodic stats
-                res.append({'time' : event.second,
+                res.append({'time' : timestamp(event.second),
                             'minerals' : event.minerals_current,
                             'gas' : event.vespene_current,
                             'supply_used' : int(event.food_used + 0.5),
@@ -94,16 +98,34 @@ if __name__ == '__main__':
 
     # print t.odd_ones
 
-    mineral_history = [event['minerals'] for event in data]
+    time_axis = [event['time'] for event in data]
+    def index_to_timestamp(x, pos):
+        """ Converts event index into timestamp"""
+        # pyplot appears to evaluate axis ticks outside of the input range
+        # so do something sensible there
+        if x < 0:
+            '-' + time_axis[int(-x)]
+        elif x >= len(time_axis):
+            return time_axis[len(time_axis) - int(x) - 1]
+        else:
+            return time_axis[int(x)]
 
     fig, ax1 = plt.subplots(2, 1)
 
-    mineral_plot = ax1[0].bar(np.arange(len(data)), mineral_history, color='xkcd:sky blue')
-    gas_plot = ax1[0].bar(np.arange(len(data)), [event['gas'] for event in data], bottom=mineral_history, color='xkcd:spring green')
-    larvae_plot, = ax1[0].twinx().plot(np.arange(len(data)), [event['larvae'] for event in data], color='tab:red', label='larvae')
+    timestamp_formatter = FuncFormatter(index_to_timestamp)
+    x_axis_indices = np.arange(len(data))
+
+    mineral_history = [event['minerals'] for event in data]
+    mineral_plot = ax1[0].bar(x_axis_indices, mineral_history, color='xkcd:sky blue')
+    gas_plot = ax1[0].bar(x_axis_indices, [event['gas'] for event in data], bottom=mineral_history, color='xkcd:spring green')
+    larvae_plot, = ax1[0].twinx().plot(x_axis_indices, [event['larvae'] for event in data], color='tab:red', label='larvae')
+
+    ax1[0].xaxis.set_major_formatter(timestamp_formatter)
+    ax1[1].xaxis.set_major_formatter(timestamp_formatter)
+
     plt.legend(handles=[larvae_plot])
     
-    drone_plot, = ax1[1].twinx().plot(np.arange(len(data)), [event['drones'] for event in data], color='tab:red', label='drones')
+    drone_plot, = ax1[1].twinx().plot(x_axis_indices, [event['drones'] for event in data], color='tab:red', label='drones')
     plt.legend(handles=[drone_plot])
 
     plt.show()
