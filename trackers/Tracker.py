@@ -10,7 +10,8 @@ class Tracker(object):
     # these don't behave the same as regular units so things break (e.g. they die, but are not born)
     UNHANDLED = ('Hatchery', 'Extractor', 'BanelingNest', 'SporeCrawler', 'SpawningPool',\
                  'CreepTumorBurrowed', 'SpineCrawler', 'CreepTumor', 'CreepTumorQueen',  \
-                 'UltraliskCavern', 'NydusWorm', 'EvolutionChamber', 'RoachWarren', 'Spire')
+                 'UltraliskCavern', 'NydusWorm', 'EvolutionChamber', 'RoachWarren', 'Spire',
+                 'Hive')
 
     def __init__(self, player_name):
         self.player_name = player_name
