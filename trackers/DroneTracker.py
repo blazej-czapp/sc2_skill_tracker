@@ -4,7 +4,7 @@ from .Tracker import Tracker
 from matplotlib.ticker import FuncFormatter
 from replay_helpers import Entity, timestamp, real_seconds
 
-from sc2reader.events import UnitBornEvent, UnitDiedEvent
+from sc2reader.events import UnitBornEvent, UnitDiedEvent, PlayerLeaveEvent
 
 # just a heuristic - the target is number of (real) minutes * 10 (interpolated)
 def target_drone_count(time_axis):
@@ -36,6 +36,8 @@ class DroneTracker(Tracker):
             self.remove_unit(event.unit.id, event.unit.name)
             self.data.append({'time' : event.second,
                               'drones' : len(self.units[Entity.DRONE])})
+        elif isinstance(event, PlayerLeaveEvent):
+            self.game_end = event.second
 
     def plot(self, axes):
         def x_to_timestamp(x, pos):
@@ -52,7 +54,10 @@ class DroneTracker(Tracker):
         axes.xaxis.set_major_formatter(FuncFormatter(x_to_timestamp))
 
         actual_x_axis = [event['time'] for event in self.data]
-        drone_plot, = axes.step(actual_x_axis, [event['drones'] for event in self.data], color='tab:red', label='drones actual')
+        # extend until game end so that all graphs align
+        actual_x_axis.append(self.game_end)
+        # repeat last recorded drone count at game end
+        drone_plot, = axes.step(actual_x_axis, [event['drones'] for event in self.data] + [self.data[-1]['drones']], color='tab:red', label='drones actual')
         target_sub = axes.twinx() # Create a twin Axes sharing the xaxis
 
         # set the same limits so both graphs are scaled the same, i.e. we can visually
@@ -61,7 +66,7 @@ class DroneTracker(Tracker):
 
         # using denser x-axis data to get the inflection point exactly right, otherwise, if no drone was
         # built or killed at that moment, we won't plot it and the line target will have too many segments
-        target_x_axis = np.arange(self.data[-1]['time'])
+        target_x_axis = np.arange(self.game_end)
         drone_target_plot, = target_sub.plot(target_x_axis, [x for x in target_drone_count(target_x_axis)], color='tab:blue', label='drones target')
 
         axes.legend(handles=[drone_plot, drone_target_plot])
