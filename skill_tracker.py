@@ -7,6 +7,7 @@ from replay_helpers import discover_zerg_names, find_last_replay
 from sc2reader.events import PlayerStatsEvent
 from trackers.DroneTracker import DroneTracker
 from trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
+from trackers.InjectTracker import InjectTracker
 
 replays_dir = "C:/Users/blazej/Documents/StarCraft II/Accounts/139961577/2-S2-1-4777600/Replays/Multiplayer"
 
@@ -35,7 +36,7 @@ if __name__ == '__main__':
 
     rep = sc2reader.load_replay(replay_file)
 
-    all_trackers = [LarvaeVsResourcesTracker, DroneTracker]
+    all_trackers = [LarvaeVsResourcesTracker, DroneTracker, InjectTracker]
 
     # instantiate and associate all trackers for each player
     player_trackers = { player_name:[tracker(player_name) for tracker in all_trackers] for player_name in player_names }
