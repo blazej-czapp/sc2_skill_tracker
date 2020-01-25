@@ -34,13 +34,12 @@ if __name__ == '__main__':
     assert(len(player_names) <= 2) # we're only plotting for 1v1 Zergs
 
     rep = sc2reader.load_replay(replay_file)
-    rep.load_tracker_events()
 
     all_trackers = [LarvaeVsResourcesTracker, DroneTracker]
 
     # instantiate and associate all trackers for each player
     player_trackers = { player_name:[tracker(player_name) for tracker in all_trackers] for player_name in player_names }
-    for event in rep.tracker_events:
+    for event in rep.events:
         for player in player_trackers:
             for tracker in player_trackers[player]:
                 tracker.consume_event(event)
