@@ -11,7 +11,7 @@ class Tracker(object):
     UNHANDLED = ('Hatchery', 'Extractor', 'BanelingNest', 'SporeCrawler', 'SpawningPool',\
                  'CreepTumorBurrowed', 'SpineCrawler', 'CreepTumor', 'CreepTumorQueen',  \
                  'UltraliskCavern', 'NydusWorm', 'EvolutionChamber', 'RoachWarren', 'Spire',
-                 'Hive')
+                 'Hive', 'LurkerDen')
 
     def __init__(self, player_name):
         self.player_name = player_name
@@ -25,8 +25,6 @@ class Tracker(object):
             return
         if id not in self.units[key]:
             print(key)
-        #     self.odd_ones.add(key)
-        #     return
         assert id in self.units[key]
         self.units[key].remove(id)
 
