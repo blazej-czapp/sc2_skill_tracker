@@ -71,9 +71,15 @@ class LarvaeVsResourcesTracker(Tracker):
         for i, event in enumerate(self.data):
             if i == 0:
                 continue
-            if event['supply_cap'] < 200 and event['supply_cap'] - event['supply_used'] < 2:
-                axes.axvspan(i-1, i, color='r', alpha=0.1, lw=0)
 
-        supply_legend = mpatches.Patch(color='red', alpha=0.1, label='available supply < 2')
+            capped_cap = min(200, event['supply_cap'])
+            if capped_cap - event['supply_used'] < 2:
+                if capped_cap < 200:
+                    axes.axvspan(i-1, i, color='red', alpha=0.1, lw=0)
+                else:
+                    axes.axvspan(i-1, i, color='blue', alpha=0.1, lw=0)
 
-        axes.legend(handles=[mineral_plot, gas_plot, larvae_plot, supply_legend], loc='upper left')
+        supply_blocked_legend = mpatches.Patch(color='red', alpha=0.1, label='supply blocked')
+        supply_capped_legend = mpatches.Patch(color='blue', alpha=0.1, label='supply capped')
+
+        axes.legend(handles=[mineral_plot, gas_plot, larvae_plot, supply_blocked_legend, supply_capped_legend], loc='upper left')
