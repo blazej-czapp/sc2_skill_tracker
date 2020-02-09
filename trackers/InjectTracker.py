@@ -70,6 +70,7 @@ class InjectTracker(Tracker):
         h = 1
         # plot hatcheries sorted by creation time
         sorted_hatcheries = sorted(self.hatchery_history.items(), key=lambda item: item[1]['created'])
+        percentage_injected = []
         for hatch in [item[1] for item in sorted_hatcheries]:
             injects = hatch['injects']
             creation = hatch['created']
@@ -94,12 +95,15 @@ class InjectTracker(Tracker):
             if len(injects) > 1:
                 # idle time between injects
                 axes.broken_barh([(injects[i-1][1], injects[i][0]-injects[i-1][1]) for i in range(1, len(injects))], (5 * h, 2), facecolors='tab:red', alpha=0.75)
+
+            total_injected = sum([interval[1] - interval[0] for interval in injects])
+            percentage_injected.append(total_injected / (life_end - creation) * 100)
             h += 1
 
         idle_legend = mpatches.Patch(color='tab:red', label='idle', alpha=0.75)
         injected_legend = mpatches.Patch(color='tab:green', label='injected', alpha=0.9)
 
         axes.set_yticks([5*i+1 for i in range(1, h+1)])
-        axes.set_yticklabels(['Hatch %d' % i for i in range(1, len(self.hatchery_history)+1)])
+        axes.set_yticklabels(["%d%%" % p for p in percentage_injected])
         
         axes.legend(handles=[injected_legend, idle_legend], loc='upper left')
