@@ -15,7 +15,8 @@ class InjectTracker(Tracker):
 
     def consume_event(self, event):
         # the initial hatchery is "born", subsequent ones are "done"
-        # TODO handle hatcheries dying (truncate their inject time)
+        # As a Hatchery becomes a Lair and Hive, its ID doesn't change so events can show e.g. a Hive
+        # right at the start of the game.
         if isinstance(event, UnitBornEvent) \
            and event.unit.owner is not None \
            and event.unit.owner.name.startswith(self.player_name) \
@@ -33,17 +34,18 @@ class InjectTracker(Tracker):
              and event.unit.owner.name.startswith(self.player_name) \
              and (event.unit.name == "Hatchery" or event.unit.name == "Lair" or event.unit.name == "Hive"):
             try:
-                self.hatchery_history[event.unit_id]['destoryed'] = event.second
-            except:
+                self.hatchery_history[event.unit_id]['destroyed'] = event.second
+            except KeyError:
                 # if the hatchery never finished, we don't record its death
                 pass
 
-        elif type(event) == TargetUnitCommandEvent \
+        elif isinstance(event, TargetUnitCommandEvent) \
              and event.player.name is not None \
              and event.player.name.startswith(self.player_name) \
              and hasattr(event, "ability") \
-             and event.ability_name == "SpawnLarva":
-            # TODO using isinstance() gives false positives on some Right Click events - fix in sc2reader?
+             and event.ability_name == "SpawnLarva" \
+             and event.target_unit_id in self.hatchery_history:
+
             inject_intervals = self.hatchery_history[event.target_unit_id]['injects']
 
             if inject_intervals and event.second < inject_intervals[-1][1]:
