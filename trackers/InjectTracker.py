@@ -6,6 +6,13 @@ from replay_helpers import Entity, timestamp, real_seconds
 from sc2reader.events.tracker import UnitBornEvent, UnitDoneEvent, UnitDiedEvent
 from sc2reader.events.game import TargetUnitCommandEvent, PlayerLeaveEvent
 
+print(
+"""NOTE:
+  Inject tracking is approximate, it tracks inject commands issued, not actual incjets. If a queen
+  was diverted, the inject will still be counted. If a queen has to walk, timing will be off.
+  Treat it more like "inject intention".
+""")
+
 class InjectTracker(Tracker):
     INJECT_TIME = 40 # in game seconds, according to https://github.com/dsjoerg/ggpyjobs/blob/master/sc2parse/plugins.py
 
