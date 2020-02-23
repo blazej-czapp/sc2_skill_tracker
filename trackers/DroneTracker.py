@@ -69,4 +69,4 @@ class DroneTracker(Tracker):
         target_x_axis = np.arange(self.game_end)
         drone_target_plot, = target_sub.plot(target_x_axis, [x for x in target_drone_count(target_x_axis)], color='tab:blue', label='drones target')
 
-        axes.legend(handles=[drone_plot, drone_target_plot])
+        axes.legend(handles=[drone_plot, drone_target_plot], loc='upper left')
