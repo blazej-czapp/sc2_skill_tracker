@@ -11,7 +11,7 @@ class Tracker(object):
     UNHANDLED = ('Hatchery', 'Extractor', 'BanelingNest', 'SporeCrawler', 'SpawningPool',\
                  'CreepTumorBurrowed', 'SpineCrawler', 'CreepTumor', 'CreepTumorQueen',  \
                  'UltraliskCavern', 'NydusWorm', 'EvolutionChamber', 'RoachWarren', 'Spire',
-                 'Hive', 'LurkerDen', 'HydraliskDen', 'InfestationPit')
+                 'Hive', 'LurkerDen', 'HydraliskDen', 'InfestationPit', 'ExtractorRich')
 
     def __init__(self, player_name):
         self.player_name = player_name
