@@ -12,7 +12,7 @@ class Tracker(object):
                  'CreepTumorBurrowed', 'SpineCrawler', 'CreepTumor', 'CreepTumorQueen',  \
                  'UltraliskCavern', 'NydusWorm', 'EvolutionChamber', 'RoachWarren', 'Spire',
                  'Hive', 'LurkerDen', 'HydraliskDen', 'InfestationPit', 'ExtractorRich',
-                 'NydusNetwork')
+                 'NydusNetwork', 'GreaterSpire')
 
     def __init__(self, player_name):
         self.player_name = player_name
