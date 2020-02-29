@@ -2,6 +2,7 @@
 
 import matplotlib.pyplot as plt
 import sc2reader
+import os.path
 import sys
 import time
 
@@ -11,7 +12,7 @@ from trackers.DroneTracker import DroneTracker
 from trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 from trackers.InjectTracker import InjectTracker
 
-replays_dir = "C:/Users/blazej/Documents/StarCraft II/Accounts/139961577/2-S2-1-4777600/Replays/Multiplayer"
+replays_dir = os.path.normpath("C:/Users/blazej/Documents/StarCraft II/Accounts/139961577/2-S2-1-4777600/Replays/Multiplayer")
 
 def plot_trackers(player_name, trackers):
     # plotting every tracker in a separate Axes of the same Figure
@@ -22,6 +23,7 @@ def plot_trackers(player_name, trackers):
         axes = axeses[i]
         tracker.plot(axes)
 
+
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         replay_file = find_last_replay(replays_dir)
@@ -31,9 +33,16 @@ if __name__ == '__main__':
         print("usage: %s filename.SC2replay OR %s" % (sys.argv[0], sys.argv[0]))
         sys.exit(1)
 
-    print("Loading replay from file: " + replay_file)
+    if not os.path.isfile(replay_file):
+        print(f"Replay file not found: {replay_file}")
+        replay_file = os.path.join(replays_dir, replay_file)
+        print(f"Looking for it in replays directory: {replays_dir} as {replay_file}")
+    if not os.path.isfile(replay_file):
+        print("Replay file not found")
+        sys.exit(4)
 
     zerg_names = discover_zerg_names(replay_file)
+
     if len(zerg_names) == 0:
         print("No Zerg players found")
         sys.exit(2)
