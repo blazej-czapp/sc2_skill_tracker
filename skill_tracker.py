@@ -29,19 +29,24 @@ if __name__ == '__main__':
         replay_file = sys.argv[1]
     else:
         print("usage: %s filename.SC2replay OR %s" % (sys.argv[0], sys.argv[0]))
-        sys.exit(0)
+        sys.exit(1)
 
     print("Loading replay from file: " + replay_file)
 
-    player_names = discover_zerg_names(replay_file)
-    assert(len(player_names) <= 2) # we're only plotting for 1v1 Zergs
+    zerg_names = discover_zerg_names(replay_file)
+    if len(zerg_names) == 0:
+        print("No Zerg players found")
+        sys.exit(2)
+    elif (len(zerg_names) > 2):
+        print("Too many Zerg players found (%d), only 1v1 games supported" % len(zerg_names))
+        sys.exit(3)
 
     rep = sc2reader.load_replay(replay_file)
 
     all_trackers = [LarvaeVsResourcesTracker, DroneTracker, InjectTracker]
 
     # instantiate and associate all trackers for each player
-    player_trackers = { player_name:[tracker(player_name) for tracker in all_trackers] for player_name in player_names }
+    player_trackers = { player_name:[tracker(player_name) for tracker in all_trackers] for player_name in zerg_names }
     for event in rep.events:
         for player in player_trackers:
             for tracker in player_trackers[player]:
