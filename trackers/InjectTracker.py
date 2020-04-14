@@ -18,6 +18,7 @@ class InjectTracker(Tracker):
 
     def __init__(self, player_name):
         Tracker.__init__(self, player_name)
+        self.first_queen_time = None
         self.hatchery_history = {}
 
     def consume_event(self, event):
@@ -64,8 +65,15 @@ class InjectTracker(Tracker):
                 # XXX if the queen has to travel, this will be inaccurate; the total time should
                 #     be right, though - the idle time will just be shifted from before to after the inject
                 inject_intervals.append((event.second, event.second+InjectTracker.INJECT_TIME))
+
         elif isinstance(event, PlayerLeaveEvent):
             self.game_end = event.second
+
+        elif isinstance(event, UnitBornEvent) \
+             and event.unit.name == "Queen" \
+             and event.unit.owner.name.startswith(self.player_name) \
+             and self.first_queen_time is None:
+            self.first_queen_time = event.second
 
     def plot(self, axes):
         def x_to_timestamp(x, pos):
@@ -90,27 +98,36 @@ class InjectTracker(Tracker):
             for interval in injects:
                 axes.broken_barh([(interval[0], interval[1]-interval[0]) for interval in injects], (5*h, 2), facecolors='tab:green', alpha=0.9)
 
+            no_queen_time = max(0, min(life_end, self.first_queen_time) - creation)
+            # greyed-out time from creation until the first queen is born (and earliest inject is possible)
+            # if creation is after the first queen, no_queen_time will be zero so nothing should be plotted
+            axes.broken_barh([(creation, no_queen_time)], (5*h, 2), facecolors='tab:grey', alpha=0.75)
+
+            earliest_possible_inject = max(creation, self.first_queen_time)
+
             if injects:
-                # idle time from creation until first inject
-                axes.broken_barh([(creation, injects[0][0] - creation)], (5*h, 2), facecolors='tab:red', alpha=0.75)
+                # idle time from earliest_possible_inject until first inject (must be >= 0, inject must happen after a queen is born)
+                axes.broken_barh([(earliest_possible_inject, injects[0][0] - earliest_possible_inject)], (5*h, 2), facecolors='tab:red', alpha=0.75)
                 # idle time from last inject until game end or death
                 axes.broken_barh([(injects[-1][1], life_end-injects[-1][1])], (5*h, 2), facecolors='tab:red', alpha=0.75)
             else:
-                # never injected - plot idle time from creation until destruction or game end
-                axes.broken_barh([(creation, life_end-creation)], (5*h, 2), facecolors='tab:red', alpha=0.75)
+                # never injected - plot idle time from earliest possible inject (creation or queen born) until destruction or game end
+                # thresholding duration in case hatchery died before the first queen was born
+                axes.broken_barh([(earliest_possible_inject, max(0, life_end-earliest_possible_inject))], (5*h, 2), facecolors='tab:red', alpha=0.75)
 
             if len(injects) > 1:
                 # idle time between injects
                 axes.broken_barh([(injects[i-1][1], injects[i][0]-injects[i-1][1]) for i in range(1, len(injects))], (5 * h, 2), facecolors='tab:red', alpha=0.75)
 
             total_injected = sum([interval[1] - interval[0] for interval in injects])
-            percentage_injected.append(total_injected / (life_end - creation) * 100)
+            percentage_injected.append(total_injected / (life_end - earliest_possible_inject) * 100)
             h += 1
-
-        idle_legend = mpatches.Patch(color='tab:red', label='idle', alpha=0.75)
-        injected_legend = mpatches.Patch(color='tab:green', label='injected', alpha=0.9)
 
         axes.set_yticks([5*i+1 for i in range(1, h+1)])
         axes.set_yticklabels(["%d%%" % p for p in percentage_injected])
+
+        idle_legend = mpatches.Patch(color='tab:red', label='idle', alpha=0.75)
+        injected_legend = mpatches.Patch(color='tab:green', label='injected', alpha=0.9)
+        no_queen_legend = mpatches.Patch(color='tab:grey', label='no queen', alpha=0.9)
         
-        axes.legend(handles=[injected_legend, idle_legend], loc='upper left')
+        axes.legend(handles=[injected_legend, idle_legend, no_queen_legend], loc='upper left')
