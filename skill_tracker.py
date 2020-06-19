@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import matplotlib.pyplot as plt
 import sc2reader
 import os.path
@@ -25,13 +26,14 @@ def plot_trackers(player_name, trackers):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
+    parser = argparse.ArgumentParser(description=f'Default replay search path: {replays_dir}')
+    parser.add_argument("replay_file", nargs='?', help='Name of the replay file (absolute path or relative to replay search path). Latest replay if omitted.')
+    args = parser.parse_args()
+
+    if args.replay_file is None:
         replay_file = find_last_replay(replays_dir)
-    elif len(sys.argv) == 2:
-        replay_file = sys.argv[1]
     else:
-        print("usage: %s filename.SC2replay OR %s" % (sys.argv[0], sys.argv[0]))
-        sys.exit(1)
+        replay_file = args.replay_file
 
     if not os.path.isfile(replay_file):
         print(f"Replay file not found: {replay_file}")
@@ -39,7 +41,7 @@ if __name__ == '__main__':
         print(f"Looking for it in replays directory: {replays_dir} as {replay_file}")
     if not os.path.isfile(replay_file):
         print("Replay file not found")
-        sys.exit(4)
+        sys.exit(1)
 
     zerg_names = discover_zerg_names(replay_file)
 
