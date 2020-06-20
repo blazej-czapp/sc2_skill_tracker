@@ -5,9 +5,15 @@ from stat import S_ISREG, ST_CTIME, ST_MODE
 
 from sc2reader.events import PlayerStatsEvent
 
+GAME_SPEED = 1.4
+
 def real_seconds(game_seconds):
     """ converts from game seconds (faster speed) to wall clock seconds """
-    return game_seconds / 1.4
+    return game_seconds / GAME_SPEED
+
+def game_seconds(real_seconds):
+    """ converts from wall clock seconds to game seconds """
+    return real_seconds * GAME_SPEED
 
 def timestamp(seconds):
     return "%02.i:%02.i" % (int(seconds) // 60, int(seconds) % 60)

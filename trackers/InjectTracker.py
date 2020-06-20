@@ -75,7 +75,10 @@ class InjectTracker(Tracker):
              and self.first_queen_time is None:
             self.first_queen_time = event.second
 
-    def plot(self, axes):
+    def plot(self, axes, cutoff):
+        """
+        cutoff: only plot until this time (in in-game seconds)
+        """
         def x_to_timestamp(x, pos):
             if x >= 0:
                 return timestamp(real_seconds(x))
@@ -89,9 +92,16 @@ class InjectTracker(Tracker):
         for hatch in [item[1] for item in sorted_hatcheries]:
             injects = hatch['injects']
             creation = hatch['created']
-            life_end = self.game_end if hatch['destroyed'] is None else hatch['destroyed']
 
-            # clamp all intervals to game duration or hatchery life time
+            if cutoff is not None and creation >= cutoff:
+              break # hatcheries sorted by creation so nothing else will qualify
+
+            if cutoff is None:
+              life_end = self.game_end if hatch['destroyed'] is None else hatch['destroyed']
+            else:
+              life_end = min(cutoff, self.game_end) if hatch['destroyed'] is None else min(cutoff, hatch['destroyed'])
+
+            # clamp all intervals to game-duration/cutoff or hatchery life time
             injects = [(min(life_end, interval[0]), min(life_end, interval[1])) for interval in injects]
 
             # all injected intervals
@@ -103,7 +113,7 @@ class InjectTracker(Tracker):
             # if creation is after the first queen, no_queen_time will be zero so nothing should be plotted
             axes.broken_barh([(creation, no_queen_time)], (5*h, 2), facecolors='tab:grey', alpha=0.75)
 
-            earliest_possible_inject = max(creation, self.first_queen_time)
+            earliest_possible_inject = max(creation, min(life_end, self.first_queen_time))
 
             if injects:
                 # idle time from earliest_possible_inject until first inject (must be >= 0, inject must happen after a queen is born)
@@ -120,7 +130,7 @@ class InjectTracker(Tracker):
                 axes.broken_barh([(injects[i-1][1], injects[i][0]-injects[i-1][1]) for i in range(1, len(injects))], (5 * h, 2), facecolors='tab:red', alpha=0.75)
 
             total_injected = sum([interval[1] - interval[0] for interval in injects])
-            percentage_injected.append(total_injected / (life_end - earliest_possible_inject) * 100)
+            percentage_injected.append(0 if total_injected == 0.0 else total_injected / (life_end - earliest_possible_inject) * 100)
             h += 1
 
         axes.set_yticks([5*i+1 for i in range(1, h+1)])

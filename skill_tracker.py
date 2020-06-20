@@ -7,7 +7,7 @@ import os.path
 import sys
 import time
 
-from replay_helpers import discover_zerg_names, find_last_replay
+from replay_helpers import discover_zerg_names, find_last_replay, game_seconds
 from sc2reader.events import PlayerStatsEvent
 from trackers.DroneTracker import DroneTracker
 from trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
@@ -15,18 +15,26 @@ from trackers.InjectTracker import InjectTracker
 
 replays_dir = os.path.normpath("C:/Users/blazej/Documents/StarCraft II/Accounts/139961577/2-S2-1-4777600/Replays/Multiplayer")
 
-def plot_trackers(player_name, trackers):
+def parse_cutoff(arg):
+    split = arg.split(":")
+    if len(split) != 2:
+        raise argparse.ArgumentTypeError("Invalid cutoff time format")
+    return game_seconds(int(split[0]) * 60 + int(split[1]))
+
+def plot_trackers(player_name, trackers, cutoff_time):
     # plotting every tracker in a separate Axes of the same Figure
     fig, axeses = plt.subplots(len(trackers), 1)
     fig.suptitle(player_name, fontsize=16)
 
     for i, tracker in enumerate(trackers):
         axes = axeses[i]
-        tracker.plot(axes)
+        tracker.plot(axes, cutoff_time)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=f'Default replay search path: {replays_dir}')
+    # both optional
+    parser.add_argument('-u', '--until', type=parse_cutoff, dest='cutoff', action='store', help='cutoff time in format 12:34')
     parser.add_argument("replay_file", nargs='?', help='Name of the replay file (absolute path or relative to replay search path). Latest replay if omitted.')
     args = parser.parse_args()
 
@@ -64,5 +72,5 @@ if __name__ == '__main__':
                 tracker.consume_event(event)
 
     for player in player_trackers:
-        plot_trackers(player, player_trackers[player])
+        plot_trackers(player, player_trackers[player], args.cutoff)
     plt.show()

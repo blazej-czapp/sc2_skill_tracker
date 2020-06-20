@@ -39,7 +39,10 @@ class DroneTracker(Tracker):
         elif isinstance(event, PlayerLeaveEvent):
             self.game_end = event.second
 
-    def plot(self, axes):
+    def plot(self, axes, cutoff):
+        """
+        cutoff: only plot until this time (in in-game seconds)
+        """
         def x_to_timestamp(x, pos):
             """ Converts time (in game seconds) into timestamp string (in real minutes and seconds)
                 :param x: appears to be the position alongside respective Axis (could be y-axis)
@@ -53,11 +56,15 @@ class DroneTracker(Tracker):
 
         axes.xaxis.set_major_formatter(FuncFormatter(x_to_timestamp))
 
-        actual_x_axis = [event['time'] for event in self.data]
+        plot_end = self.game_end if cutoff is None else min(self.game_end, cutoff)
+        events = [event for event in self.data if event['time'] <= plot_end]
+        actual_x_axis = [event['time'] for event in events]
+
         # extend until game end so that all graphs align
-        actual_x_axis.append(self.game_end)
-        # repeat last recorded drone count at game end
-        drone_plot, = axes.step(actual_x_axis, [event['drones'] for event in self.data] + [self.data[-1]['drones']], color='tab:red', label='drones actual')
+        actual_x_axis.append(plot_end)
+
+        # repeat last recorded drone count at plot end
+        drone_plot, = axes.step(actual_x_axis, [event['drones'] for event in events] + [events[-1]['drones']], color='tab:red', label='drones actual')
         target_sub = axes.twinx() # Create a twin Axes sharing the xaxis
 
         # set the same limits so both graphs are scaled the same, i.e. we can visually
@@ -65,8 +72,8 @@ class DroneTracker(Tracker):
         target_sub.set_ylim(axes.get_ylim())
 
         # using denser x-axis data to get the inflection point exactly right, otherwise, if no drone was
-        # built or killed at that moment, we won't plot it and the line target will have too many segments
-        target_x_axis = np.arange(self.game_end)
+        # built or killed at that moment, we won't plot it and the target plot will have too many segments
+        target_x_axis = np.arange(plot_end + 1)
         drone_target_plot, = target_sub.plot(target_x_axis, [x for x in target_drone_count(target_x_axis)], color='tab:blue', label='drones target')
 
         axes.legend(handles=[drone_plot, drone_target_plot], loc='upper left')

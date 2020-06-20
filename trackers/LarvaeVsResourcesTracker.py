@@ -52,23 +52,28 @@ class LarvaeVsResourcesTracker(Tracker):
         elif isinstance(event, UnitDiedEvent) and event.unit.owner is not None and event.unit.owner.name.startswith(self.player_name):
             self.remove_unit(event.unit.id, event.unit.name)
 
-    def plot(self, axes):
-        # has to be contiguous, otherwise bars are separated and thin (i.e. one bar per 10 "seconds")
-        x_axis = np.arange(len(self.data))
-
+    def plot(self, axes, cutoff):
+        """
+        cutoff: only plot until this time (in in-game seconds)
+        """
         def x_to_timestamp(x, pos):
             if x >= 0 and x < len(self.data):
                 return timestamp(real_seconds(self.data[int(x)]['time']))
 
         axes.xaxis.set_major_formatter(FuncFormatter(x_to_timestamp))
 
-        mineral_history = [event['minerals'] for event in self.data]
+        events = [event for event in self.data if cutoff is None or event['time'] <= cutoff]
+
+        # has to be contiguous, otherwise bars are separated and thin (i.e. one bar per 10 "seconds")
+        x_axis = np.arange(len(events))
+
+        mineral_history = [event['minerals'] for event in events]
         mineral_plot = axes.bar(x_axis, mineral_history, color='xkcd:sky blue', label='minerals')
-        gas_plot = axes.bar(x_axis, [event['gas'] for event in self.data], bottom=mineral_history, color='xkcd:spring green', label='gas')
-        larvae_plot, = axes.twinx().plot(x_axis, [event['larvae'] for event in self.data], color='tab:red', label='larvae')
+        gas_plot = axes.bar(x_axis, [event['gas'] for event in events], bottom=mineral_history, color='xkcd:spring green', label='gas')
+        larvae_plot, = axes.twinx().plot(x_axis, [event['larvae'] for event in events], color='tab:red', label='larvae')
 
         # shade the periods the player is supply blocked (has less than 2 supply available)
-        for i, event in enumerate(self.data):
+        for i, event in enumerate(events):
             if i == 0:
                 continue
 
