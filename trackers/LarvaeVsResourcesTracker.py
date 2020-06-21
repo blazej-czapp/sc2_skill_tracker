@@ -68,11 +68,20 @@ class LarvaeVsResourcesTracker(Tracker):
         x_axis = np.arange(len(events))
 
         mineral_history = [event['minerals'] for event in events]
-        mineral_plot = axes.bar(x_axis, mineral_history, color='xkcd:sky blue', label='minerals')
-        gas_plot = axes.bar(x_axis, [event['gas'] for event in events], bottom=mineral_history, color='xkcd:spring green', label='gas')
-        larvae_plot, = axes.twinx().plot(x_axis, [event['larvae'] for event in events], color='tab:red', label='larvae')
+        avg_unspent_minerals = int(sum(mineral_history) / len(events))
+        mineral_plot = axes.bar(x_axis, mineral_history, color='xkcd:sky blue', label='minerals (avg. {:d})'.format(avg_unspent_minerals))
+
+        gas_history = [event['gas'] for event in events]
+        avg_unspent_gas = int(sum(gas_history) / len(events))
+        gas_plot = axes.bar(x_axis, gas_history, bottom=mineral_history, color='xkcd:spring green', label='gas (avg. {:d})'.format(avg_unspent_gas))
+
+        larvae_history = [event['larvae'] for event in events]
+        avg_unspent_larvae = sum(larvae_history) / len(events)
+        larvae_plot, = axes.twinx().plot(x_axis, larvae_history, color='tab:red', label='larvae (avg. {:.2f})'.format(avg_unspent_larvae))
 
         # shade the periods the player is supply blocked (has less than 2 supply available)
+        # note that we're working with 10s granularity here (game-time), so the shaded regions are generally too wide
+        # so we're not summing and printing them
         for i, event in enumerate(events):
             if i == 0:
                 continue
