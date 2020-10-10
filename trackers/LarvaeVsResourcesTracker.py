@@ -1,24 +1,20 @@
 import matplotlib.patches as mpatches
 import numpy as np
 
-from .Tracker import Tracker
 from matplotlib.ticker import FuncFormatter
 from replay_helpers import Entity, timestamp, real_seconds
 from sc2reader.events import PlayerStatsEvent, UnitTypeChangeEvent, UnitBornEvent, UnitDiedEvent
 
-class LarvaeVsResourcesTracker(Tracker):
+class LarvaeVsResourcesTracker(object):
     # larve and drones at the start of the game are 'born' just like any subsequent ones
 
     def __init__(self, player_name):
-        Tracker.__init__(self, player_name)
+        self.player_name = player_name
+        self.data = []
+        self.larva_count = 0
 
     def consume_event(self, event):
         if isinstance(event, PlayerStatsEvent) and event.player.name.startswith(self.player_name):
-            # Using PlayerStatsEvent as clock - could be more principled but it's good enough.
-            # Loggin events alone means they are spread unevenly in time so graphs end up warped
-            # (they are plotted as if events were uniformly distributed in time i.e. by event index)
-            # Could either introduce a separate clock or use event time when plotting x-axis
-
             # including our counts alongside game's periodic stats
             self.data.append({
                               'supply_used' : int(event.food_used + 0.5),
@@ -26,31 +22,38 @@ class LarvaeVsResourcesTracker(Tracker):
                               'time' : event.second,
                               'minerals' : event.minerals_current,
                               'gas' : event.vespene_current,
-                              'larvae' : len(self.units[Entity.LARVA])
+                              'larvae' : self.larva_count
                              })
-
         elif isinstance(event, UnitTypeChangeEvent) and event.unit.owner.name.startswith(self.player_name):
-            # this seems to happen once the egg hatches - it changes type back to larva
-            # and the larva then immediately dies but let's treat it as a new larva
-            # here, we'll subtract it again in unit died event
+            # event.unit_type_name is what the unit changed into; event.unit is the unit itself;
+            # Notionally, the unit referenced by 'event.unit' doesn't change with these events, but in case of
+            # larva it can be a bit confusing. The chain of events when making a unit is:
+            #  1. the larva unit changes type to Egg (but unit ID remains the same, event.unit will claim it's a Larva)
+            #  2. when the unit hatches (or the egg is killed), the type changes back to Larva
+            #  3. immediately after that, the larva unit dies
+            #
+            # I don't know if it's possible for a PlayerStatsEvent to occur between steps 2 and 3 - if so, it would
+            # overcount the larvae by 1.
             if str(event.unit_type_name).startswith(Entity.LARVA):
                 unit_id = event.unit.id
-                assert event.unit.id == event.unit_id
-                # assuming only eggs can change into larva (assert within)
-                self.remove_unit(unit_id, Entity.EGG)
-                self.add_unit(unit_id, Entity.LARVA)
+                assert event.unit.name == Entity.LARVA
+                # presumably a unit just hatched - this larva should die immediately after this
+                self.larva_count += 1
             # sometimes eggs change into eggs, don't know what it means - ignoring those events
             elif str(event.unit_type_name).startswith(Entity.EGG) and not event.unit.name.startswith(Entity.EGG):
-                unit_id = event.unit.id
-                assert event.unit.id == event.unit_id
-                # assuming only larva can change into egg (assert within)
-                self.remove_unit(unit_id, Entity.LARVA)
-                self.add_unit(unit_id, Entity.EGG)
-        elif isinstance(event, UnitBornEvent) and event.unit.owner is not None and event.unit.owner.name.startswith(self.player_name):
-            # print(event.unit.owner.name)
-            self.add_unit(event.unit.id, event.unit.name)
-        elif isinstance(event, UnitDiedEvent) and event.unit.owner is not None and event.unit.owner.name.startswith(self.player_name):
-            self.remove_unit(event.unit.id, event.unit.name)
+                # assuming only larva can change into egg
+                assert event.unit.name == Entity.LARVA
+                self.larva_count -= 1
+        elif (isinstance(event, UnitBornEvent)
+                and event.unit.owner is not None
+                and event.unit.owner.name.startswith(self.player_name)
+                and str(event.unit.name).startswith(Entity.LARVA)):
+            self.larva_count += 1
+        elif (isinstance(event, UnitDiedEvent)
+                and event.unit.owner is not None
+                and event.unit.owner.name.startswith(self.player_name)
+                and str(event.unit.name).startswith(Entity.LARVA)):
+            self.larva_count -= 1
 
     def plot(self, axes, cutoff):
         """

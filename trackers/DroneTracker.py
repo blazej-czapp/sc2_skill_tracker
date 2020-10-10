@@ -1,6 +1,5 @@
 import numpy as np
 
-from .Tracker import Tracker
 from matplotlib.ticker import FuncFormatter
 from replay_helpers import Entity, timestamp, real_seconds
 
@@ -15,27 +14,32 @@ def target_drone_count(time_axis):
         else:
             yield min_sec[0] * 10 + (min_sec[1] / 60) * 10
 
-class DroneTracker(Tracker):
+class DroneTracker(object):
     def __init__(self, player_name):
-        Tracker.__init__(self, player_name)
+        self.player_name = player_name
+        self.drone_count = 0
+        self.data = []
 
     # larvae and drones at the start of the game are 'born' just like any subsequent ones
 
     def consume_event(self, event):
-        if isinstance(event, UnitBornEvent) \
-             and event.unit.owner is not None \
-             and event.unit.owner.name.startswith(self.player_name) \
-             and event.unit.name.startswith(Entity.DRONE):
-            self.add_unit(event.unit.id, event.unit.name)
+        # TODO when a drone morphs into a building, it 'dies' only once the building is complete (which makes sense,
+        # the building can always be cancelled). But, its supply should be subtracted at the start of the morph,
+        # which we don't do here (only once it dies). The event triggered at the start has type UnitInitEvent.
+        if (isinstance(event, UnitBornEvent)
+             and event.unit.owner is not None
+             and event.unit.owner.name.startswith(self.player_name)
+             and event.unit.name == Entity.DRONE):
+            self.drone_count += 1
             self.data.append({'time' : event.second,
-                              'drones' : len(self.units[Entity.DRONE])})
-        elif isinstance(event, UnitDiedEvent) \
-             and event.unit.owner is not None \
-             and event.unit.owner.name.startswith(self.player_name) \
-             and event.unit.name.startswith(Entity.DRONE):
-            self.remove_unit(event.unit.id, event.unit.name)
+                              'drones' : self.drone_count})
+        elif (isinstance(event, UnitDiedEvent)
+             and event.unit.owner is not None
+             and event.unit.owner.name.startswith(self.player_name)
+             and event.unit.name == Entity.DRONE):
+            self.drone_count -= 1
             self.data.append({'time' : event.second,
-                              'drones' : len(self.units[Entity.DRONE])})
+                              'drones' : self.drone_count})
         elif isinstance(event, PlayerLeaveEvent):
             self.game_end = event.second
 

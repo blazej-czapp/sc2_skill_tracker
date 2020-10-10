@@ -1,6 +1,5 @@
 import matplotlib.patches as mpatches
 
-from .Tracker import Tracker
 from matplotlib.ticker import FuncFormatter
 from replay_helpers import Entity, timestamp, real_seconds
 from sc2reader.events.tracker import UnitBornEvent, UnitDoneEvent, UnitDiedEvent
@@ -13,11 +12,11 @@ print(
   Treat it more like "inject intention".
 """)
 
-class InjectTracker(Tracker):
+class InjectTracker(object):
     INJECT_TIME = 40 # in game seconds, according to https://github.com/dsjoerg/ggpyjobs/blob/master/sc2parse/plugins.py
 
     def __init__(self, player_name):
-        Tracker.__init__(self, player_name)
+        self.player_name = player_name
         self.first_queen_time = None
         self.hatchery_history = {}
 
