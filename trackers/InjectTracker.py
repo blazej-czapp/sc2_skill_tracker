@@ -12,6 +12,59 @@ print(
   Treat it more like "inject intention".
 """)
 
+def earliest_possible_inject(hatch_creation, first_queen_creation, life_end):
+    if first_queen_creation is None or first_queen_creation > life_end:
+        return None
+
+    return max(hatch_creation, first_queen_creation)
+
+
+def no_queen_period(hatch_creation, life_end, first_queen_creation):
+    """Compute the duration of the overlap of the period (start_of_game; first_queen_creation) and
+    (hatch_creation; life_end).
+    Hatch creation is implicitly the start of the overlap, so only return duration.
+
+    Arguments:
+        first_queen_creation: may be None
+    """
+    if first_queen_creation is None:
+        return life_end - hatch_creation
+    else:
+        return min(life_end, first_queen_creation) - min(hatch_creation, first_queen_creation)
+
+
+def missed_injects(injects, first_queen_creation, hatch_creation, life_end):
+    """
+    Arguments:
+        injects: list of (start, end) pairs, clamped to life_end
+    Returns:
+        pairs (start, end) of missed inject periods
+    """
+    if first_queen_creation is None:
+        return []
+
+    missed = []
+    if injects:
+        # idle time from earliest_possible_inject until first inject (must be >= 0, inject must happen after a queen
+        # is born)
+        missed.append((earliest_possible_inject(hatch_creation, first_queen_creation, life_end), injects[0][0]))
+
+        # idle time from last inject until game end or death
+        missed.append((injects[-1][1], life_end))
+    else:
+        # never injected - plot idle time from earliest possible inject (hatch_creation or queen born) until life_end
+        # watch out in case hatchery died before the first queen was born
+        if first_queen_creation is not None:
+            missed.append((max(first_queen_creation, hatch_creation), life_end))
+        # no missed injects if there was never any queen
+
+    if len(injects) > 1:
+        # idle time between injects
+        missed += [(injects[i-1][1], injects[i][0]) for i in range(1, len(injects))]
+
+    return missed
+
+
 class InjectTracker(object):
     INJECT_TIME = 40 # in game seconds, according to https://github.com/dsjoerg/ggpyjobs/blob/master/sc2parse/plugins.py
 
@@ -84,56 +137,50 @@ class InjectTracker(object):
 
         axes.xaxis.set_major_formatter(FuncFormatter(x_to_timestamp))
 
-        h = 1
-        # plot hatcheries sorted by creation time
-        sorted_hatcheries = sorted(self.hatchery_history.items(), key=lambda item: item[1]['created'])
+        # plot hatcheries sorted by hatch_creation time
+        sorted_hatcheries = sorted(self.hatchery_history.values(), key=lambda value: value['created'])
         percentage_injected = []
-        for hatch in [item[1] for item in sorted_hatcheries]:
+        for hatch_index, hatch in enumerate(sorted_hatcheries):
             injects = hatch['injects']
-            creation = hatch['created']
+            hatch_creation = hatch['created']
 
-            if cutoff is not None and creation >= cutoff:
-              break # hatcheries sorted by creation so nothing else will qualify
+            if cutoff is not None and hatch_creation >= cutoff:
+              break # hatcheries are sorted by hatch_creation so no subsequent one will qualify
 
             if cutoff is None:
               life_end = self.game_end if hatch['destroyed'] is None else hatch['destroyed']
             else:
               life_end = min(cutoff, self.game_end) if hatch['destroyed'] is None else min(cutoff, hatch['destroyed'])
 
-            # clamp all intervals to game-duration/cutoff or hatchery life time
-            injects = [(min(life_end, interval[0]), min(life_end, interval[1])) for interval in injects]
+            # clamp all inject intervals to game-duration/cutoff or hatchery life time (late or stacked injects could
+            # be computed to finish after the game end)
+            clamped_injects = [(min(life_end, interval[0]), min(life_end, interval[1])) for interval in injects]
 
-            # all injected intervals
-            for interval in injects:
-                axes.broken_barh([(interval[0], interval[1]-interval[0]) for interval in injects], (5*h, 2), facecolors='tab:green', alpha=0.9)
+            # plot all injected intervals
+            axes.broken_barh([(interval[0], interval[1]-interval[0]) for interval in clamped_injects],
+                             (5*hatch_index, 2), facecolors='tab:green', alpha=0.9)
 
-            no_queen_time = max(0, min(life_end, self.first_queen_time) - creation)
-            # greyed-out time from creation until the first queen is born (and earliest inject is possible)
-            # if creation is after the first queen, no_queen_time will be zero so nothing should be plotted
-            axes.broken_barh([(creation, no_queen_time)], (5*h, 2), facecolors='tab:grey', alpha=0.75)
+            # outside of injected intervals, we need to plot times when the hatchery existed but:
+            #  1. first queen wasn't born yet (when injects were not possible) - greyed out "no inject possible" period
+            #  2. queens (had) existed, but hatchery wasn't injected - red "missed inject" periods
 
-            earliest_possible_inject = max(creation, min(life_end, self.first_queen_time))
+            # greyed-out time from hatch_creation until the first queen is born
+            # if hatch_creation is after the first queen, no_queen will be zero so nothing should be plotted
+            no_queen = no_queen_period(hatch_creation, life_end, self.first_queen_time)
+            axes.broken_barh([(hatch_creation, no_queen)], (5*hatch_index, 2), facecolors='tab:grey', alpha=0.75)
 
-            if injects:
-                # idle time from earliest_possible_inject until first inject (must be >= 0, inject must happen after a queen is born)
-                axes.broken_barh([(earliest_possible_inject, injects[0][0] - earliest_possible_inject)], (5*h, 2), facecolors='tab:red', alpha=0.75)
-                # idle time from last inject until game end or death
-                axes.broken_barh([(injects[-1][1], life_end-injects[-1][1])], (5*h, 2), facecolors='tab:red', alpha=0.75)
+            missed = missed_injects(clamped_injects, self.first_queen_time, hatch_creation, life_end)
+            axes.broken_barh([(m[0], m[1] - m[0]) for m in missed], (5*hatch_index, 2), facecolors='tab:red', alpha=0.75)
+
+            inject_possible_time = earliest_possible_inject(hatch_creation, self.first_queen_time, life_end)
+            if inject_possible_time is None:
+                percentage_injected.append(0)
             else:
-                # never injected - plot idle time from earliest possible inject (creation or queen born) until destruction or game end
-                # thresholding duration in case hatchery died before the first queen was born
-                axes.broken_barh([(earliest_possible_inject, max(0, life_end-earliest_possible_inject))], (5*h, 2), facecolors='tab:red', alpha=0.75)
+                total_injected = sum([interval[1] - interval[0] for interval in clamped_injects])
+                percentage_injected.append(total_injected / (life_end - inject_possible_time) * 100)
 
-            if len(injects) > 1:
-                # idle time between injects
-                axes.broken_barh([(injects[i-1][1], injects[i][0]-injects[i-1][1]) for i in range(1, len(injects))], (5 * h, 2), facecolors='tab:red', alpha=0.75)
-
-            total_injected = sum([interval[1] - interval[0] for interval in injects])
-            percentage_injected.append(0 if total_injected == 0.0 else total_injected / (life_end - earliest_possible_inject) * 100)
-            h += 1
-
-        axes.set_yticks([5*i+1 for i in range(1, h+1)])
-        axes.set_yticklabels(["%d%%" % p for p in percentage_injected])
+        axes.set_yticks([5*i+1 for i in range(len(sorted_hatcheries))])
+        axes.set_yticklabels([f"{p:.0f}%" for p in percentage_injected])
 
         idle_legend = mpatches.Patch(color='tab:red', label='idle', alpha=0.75)
         injected_legend = mpatches.Patch(color='tab:green', label='injected', alpha=0.9)
