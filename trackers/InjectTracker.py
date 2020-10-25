@@ -147,6 +147,10 @@ class InjectTracker(object):
             if cutoff is not None and hatch_creation >= cutoff:
               break # hatcheries are sorted by hatch_creation so no subsequent one will qualify
 
+            if hatch_creation >= self.game_end:
+              break # this can happen if one player leaves the game, a hatchery finishes building, and then the replay
+                    # ends
+
             if cutoff is None:
               life_end = self.game_end if hatch['destroyed'] is None else hatch['destroyed']
             else:
