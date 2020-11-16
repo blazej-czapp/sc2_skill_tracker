@@ -13,7 +13,7 @@ from trackers.DroneTracker import DroneTracker
 from trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 from trackers.InjectTracker import InjectTracker
 
-replays_dir = os.path.normpath("C:/Users/blazej/Documents/StarCraft II/Accounts/139961577/2-S2-1-4777600/Replays/Multiplayer")
+replays_dir = os.path.normpath(os.environ['SC2_SKILL_TRACKER_REPLAY_PATH'])
 
 def parse_cutoff(arg):
     split = arg.split(":")
