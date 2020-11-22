@@ -1,7 +1,7 @@
 import numpy as np
 
 from matplotlib.ticker import FuncFormatter
-from replay_helpers import Entity, timestamp, real_seconds
+from ..replay_helpers import Entity, timestamp, real_seconds
 
 from sc2reader.events import UnitBornEvent, UnitDiedEvent, PlayerLeaveEvent
 

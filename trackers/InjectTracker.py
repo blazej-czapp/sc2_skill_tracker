@@ -1,16 +1,14 @@
+"""Inject tracking is approximate - it tracks inject commands issued, not actual incjets. If a queen
+  was diverted (or killed), the inject will still be counted. If a queen has to walk, timing will be off.
+"""
+
 import matplotlib.patches as mpatches
 
 from matplotlib.ticker import FuncFormatter
-from replay_helpers import Entity, timestamp, real_seconds
+from ..replay_helpers import Entity, timestamp, real_seconds
 from sc2reader.events.tracker import UnitBornEvent, UnitDoneEvent, UnitDiedEvent
 from sc2reader.events.game import TargetUnitCommandEvent, PlayerLeaveEvent
 
-print(
-"""NOTE:
-  Inject tracking is approximate, it tracks inject commands issued, not actual incjets. If a queen
-  was diverted, the inject will still be counted. If a queen has to walk, timing will be off.
-  Treat it more like "inject intention".
-""")
 
 def earliest_possible_inject(hatch_creation, first_queen_creation, life_end):
     if first_queen_creation is None or first_queen_creation > life_end:
@@ -189,5 +187,5 @@ class InjectTracker(object):
         idle_legend = mpatches.Patch(color='tab:red', label='idle', alpha=0.75)
         injected_legend = mpatches.Patch(color='tab:green', label='injected', alpha=0.9)
         no_queen_legend = mpatches.Patch(color='tab:grey', label='no queen', alpha=0.9)
-        
+
         axes.legend(handles=[injected_legend, idle_legend, no_queen_legend], loc='upper left')
