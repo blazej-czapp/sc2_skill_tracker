@@ -28,6 +28,7 @@ def plot_trackers(player_name, trackers, cutoff_time, figure, axeses):
 
     for i, tracker in enumerate(trackers):
         axes = axeses[i]
+        axes.set_title(tracker.title)
         tracker.plot(axes, cutoff_time)
 
 def generate_plots(replay_file, cutoff=None, use_pyplot=False):

@@ -70,6 +70,7 @@ class InjectTracker(object):
         self.player_name = player_name
         self.first_queen_time = None
         self.hatchery_history = {}
+        self.title = "Injects"
 
     def consume_event(self, event):
         # the initial hatchery is "born", subsequent ones are "done"

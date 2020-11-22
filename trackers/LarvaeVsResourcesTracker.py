@@ -12,6 +12,7 @@ class LarvaeVsResourcesTracker(object):
         self.player_name = player_name
         self.data = []
         self.larva_count = 0
+        self.title = "Resources vs larvae"
 
     def consume_event(self, event):
         if isinstance(event, PlayerStatsEvent) and event.player.name.startswith(self.player_name):

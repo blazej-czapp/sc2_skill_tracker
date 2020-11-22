@@ -19,6 +19,7 @@ class DroneTracker(object):
         self.player_name = player_name
         self.drone_count = 0
         self.data = []
+        self.title = "Drones"
 
     # larvae and drones at the start of the game are 'born' just like any subsequent ones
 
