@@ -14,7 +14,9 @@ from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 from .trackers.InjectTracker import InjectTracker
 from .SC2SkillTrackerException import SC2SkillTrackerException
 
-replays_dir = os.path.normpath(os.environ['SC2_SKILL_TRACKER_REPLAY_PATH'])
+REPLAY_PATH_VAR = 'SC2_SKILL_TRACKER_REPLAY_PATH'
+
+replays_dir = os.path.normpath(os.environ[REPLAY_PATH_VAR]) if REPLAY_PATH_VAR in os.environ else None
 
 def parse_cutoff(arg):
     split = arg.split(":")
@@ -74,7 +76,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.replay_file is None:
-        replay_file = find_last_replay(replays_dir)
+        if replays_dir:
+            replay_file = find_last_replay(replays_dir)
+        else:
+            print("Error: No replay file provided. I can't look for the latest replay because SC2_SKILL_TRACKER_REPLAY_PATH is not set.")
+            sys.exit(1)
     else:
         replay_file = args.replay_file
 
