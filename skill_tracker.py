@@ -19,6 +19,8 @@ REPLAY_PATH_VAR = 'SC2_SKILL_TRACKER_REPLAY_PATH'
 replays_dir = os.path.normpath(os.environ[REPLAY_PATH_VAR]) if REPLAY_PATH_VAR in os.environ else None
 
 def parse_cutoff(arg):
+    """parse string in format mm:ss in real time to game seconds
+    """
     split = arg.split(":")
     if len(split) != 2:
         raise argparse.ArgumentTypeError("Invalid cutoff time format")
@@ -34,6 +36,8 @@ def plot_trackers(player_name, trackers, cutoff_time, figure, axeses):
         tracker.plot(axes, cutoff_time)
 
 def generate_plots(replay_file, cutoff=None, use_pyplot=False):
+    """cutoff - plot only until this time in game seconds
+    """
     zerg_names = discover_zerg_names(replay_file)
 
     if len(zerg_names) == 0:
@@ -71,7 +75,7 @@ def generate_plots(replay_file, cutoff=None, use_pyplot=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=f'Default replay search path: {replays_dir}')
     # both optional
-    parser.add_argument('-u', '--until', type=parse_cutoff, dest='cutoff', action='store', help='cutoff time in format 12:34')
+    parser.add_argument('-u', '--until', type=parse_cutoff, dest='cutoff', action='store', help='cutoff time in format mm:ss')
     parser.add_argument("replay_file", nargs='?', help='Name of the replay file (absolute path or relative to replay search path). Latest replay if omitted.')
     args = parser.parse_args()
 

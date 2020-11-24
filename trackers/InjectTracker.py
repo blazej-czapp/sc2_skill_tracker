@@ -38,14 +38,15 @@ def missed_injects(injects, first_queen_creation, hatch_creation, life_end):
     Returns:
         pairs (start, end) of missed inject periods
     """
-    if first_queen_creation is None:
+    earliest_possible = earliest_possible_inject(hatch_creation, first_queen_creation, life_end)
+    if earliest_possible is None:
         return []
 
     missed = []
     if injects:
         # idle time from earliest_possible_inject until first inject (must be >= 0, inject must happen after a queen
         # is born)
-        missed.append((earliest_possible_inject(hatch_creation, first_queen_creation, life_end), injects[0][0]))
+        missed.append((earliest_possible, injects[0][0]))
 
         # idle time from last inject until game end or death
         missed.append((injects[-1][1], life_end))
@@ -182,7 +183,7 @@ class InjectTracker(object):
                 total_injected = sum([interval[1] - interval[0] for interval in clamped_injects])
                 percentage_injected.append(total_injected / (life_end - inject_possible_time) * 100)
 
-        axes.set_yticks([5*i+1 for i in range(len(sorted_hatcheries))])
+        axes.set_yticks([5*i+1 for i in range(len(percentage_injected))]) # only plot hatheries that existed before cutoff
         axes.set_yticklabels([f"{p:.0f}%" for p in percentage_injected])
 
         idle_legend = mpatches.Patch(color='tab:red', label='idle', alpha=0.75)
