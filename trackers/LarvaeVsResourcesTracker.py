@@ -12,6 +12,7 @@ class LarvaeVsResourcesTracker(object):
         self.player_name = player_name
         self.data = []
         self.larva_count = 0
+        self.total_larvae = 0
         self.title = "Resources vs larvae"
 
     def consume_event(self, event):
@@ -40,6 +41,7 @@ class LarvaeVsResourcesTracker(object):
                 assert event.unit.name == Entity.LARVA
                 # presumably a unit just hatched - this larva should die immediately after this
                 self.larva_count += 1
+                self.total_larvae += 1
             # sometimes eggs change into eggs, don't know what it means - ignoring those events
             elif str(event.unit_type_name).startswith(Entity.EGG) and not event.unit.name.startswith(Entity.EGG):
                 # assuming only larva can change into egg
@@ -50,6 +52,7 @@ class LarvaeVsResourcesTracker(object):
                 and event.unit.owner.name.startswith(self.player_name)
                 and str(event.unit.name).startswith(Entity.LARVA)):
             self.larva_count += 1
+            self.total_larvae += 1
         elif (isinstance(event, UnitDiedEvent)
                 and event.unit.owner is not None
                 and event.unit.owner.name.startswith(self.player_name)
@@ -81,7 +84,7 @@ class LarvaeVsResourcesTracker(object):
 
         larvae_history = [event['larvae'] for event in events]
         avg_unspent_larvae = sum(larvae_history) / len(events)
-        larvae_plot, = axes.twinx().plot(x_axis, larvae_history, color='tab:red', label='larvae (avg. {:.2f})'.format(avg_unspent_larvae))
+        larvae_plot, = axes.twinx().plot(x_axis, larvae_history, color='tab:red', label='larvae (avg. {:.2f}, tot. {:d})'.format(avg_unspent_larvae, self.total_larvae))
 
         # shade the periods the player is supply blocked (has less than 2 supply available)
         # note that we're working with 10s granularity here (game-time), so the shaded regions are generally too wide
