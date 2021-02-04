@@ -1,11 +1,14 @@
 import argparse
 import matplotlib.pyplot as plt
+import numpy as np
 import sc2reader
 import os.path
 import sys
 import time
 
 from matplotlib.figure import Figure
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 from sc2reader.events import PlayerStatsEvent
 
 from .replay_helpers import discover_players, find_last_replay, game_seconds
@@ -72,12 +75,86 @@ def generate_plots(replay_file, cutoff=None, use_pyplot=False):
 
     return figures
 
+def plot_trends(count, player):
+    """ Plots how how certain per-game statistics evolve over time for the player
+
+        param: count number of most recent replays to look at
+    """
+    files = [os.path.join(replays_dir, f) for f in os.listdir(replays_dir)]
+    files.sort(key=os.path.getmtime)
+    files = files[-count:] # take count most recent
+
+    # 2D array of unspent larvae history for all replays
+    # Say we have 3 replays of length 3,2,3 and the following unspent larvae counts:
+    # 4 2 6
+    # 3 1
+    # 6 4 2
+    unspent_larvae = []
+
+    for f in files:
+        rep = sc2reader.load_replay(f)
+        tracker = LarvaeVsResourcesTracker(player)
+
+        for event in rep.events:
+            tracker.consume_event(event)
+
+        # append the entire history for this replay as a list
+        unspent_larvae.append([tick['larvae'] for tick in tracker.data])
+
+    #print(unspent_larvae)
+
+    # To what length do we need to pad?
+    max_len = np.array([len(array) for array in unspent_larvae]).max()
+
+    # What value do we want to fill it with?
+    default_value = -1
+
+    # pad missing entries (from shorter replays) with -1 so we know not to count them, the example becomes:
+    # 4 2 6
+    # 3 1 -1
+    # 6 4 2
+    padded_histories = np.array([np.pad(array, (0, max_len - len(array)), mode='constant', constant_values=default_value) for array in unspent_larvae])
+#    print(padded_histories)
+
+    # window example (first one):
+    # _
+    #|4| 2 6
+    #|3| 1 -1
+    # -
+    # 6  4 2
+    window = 10
+    averages = []
+    for i in range(max_len):
+        averages.append([])
+        for j in range(len(padded_histories)-window):
+            # take a vertical slice of size window and average non -1 values
+            avg_window = padded_histories[j:j+window, i]
+            valid = [x for x in avg_window if x != -1]
+            avg = np.average(valid) if valid else 0 # zero if the entire window is missing data
+            averages[i].append(avg)
+
+    #print(averages)
+    averages = np.array(averages)
+    X = np.arange(0, len(padded_histories) - window)
+    Y = np.arange(0, max_len)
+    X, Y = np.meshgrid(X, Y)
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    surf = ax.plot_surface(X, Y, averages, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    #surf = ax.plot_surface(X, Y, averages, color='b')
+
+    #too noisy, plot trends instead
+    plt.show()
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=f'Default replay search path: {replays_dir}')
     # both optional
     parser.add_argument('-u', '--until', type=parse_cutoff, dest='cutoff', action='store', help='cutoff time in format mm:ss')
     parser.add_argument("replay_file", nargs='?', help='Name of the replay file (absolute path or relative to replay search path). Latest replay if omitted.')
     args = parser.parse_args()
+
+#    plot_trends(100, 'orastem')
 
     if args.replay_file is None:
         if replays_dir:
