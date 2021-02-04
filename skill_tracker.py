@@ -8,7 +8,7 @@ import time
 from matplotlib.figure import Figure
 from sc2reader.events import PlayerStatsEvent
 
-from .replay_helpers import discover_zerg_names, find_last_replay, game_seconds
+from .replay_helpers import discover_players, find_last_replay, game_seconds
 from .trackers.DroneTracker import DroneTracker
 from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 from .trackers.InjectTracker import InjectTracker
@@ -38,7 +38,7 @@ def plot_trackers(player_name, trackers, cutoff_time, figure, axeses):
 def generate_plots(replay_file, cutoff=None, use_pyplot=False):
     """cutoff - plot only until this time in game seconds
     """
-    zerg_names = discover_zerg_names(replay_file)
+    zerg_names = [player.name for player in discover_players(replay_file) if player.play_race == "Zerg"]
 
     if len(zerg_names) == 0:
         raise SC2SkillTrackerException("No Zerg players found")

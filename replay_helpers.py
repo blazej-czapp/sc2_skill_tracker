@@ -18,22 +18,21 @@ def game_seconds(real_seconds):
 def timestamp(seconds):
     return "%02.i:%02.i" % (int(seconds) // 60, int(seconds) % 60)
 
-def discover_zerg_names(replay_file):
+def discover_players(replay_file):
     rep = sc2reader.load_replay(replay_file)
     rep.load_tracker_events()
-    zergs = set()
     players = set()
     for event in rep.tracker_events:
         if isinstance(event, PlayerStatsEvent):
-            players.add(event.player.name)
-            if event.player.play_race == 'Zerg':
-                zergs.add(event.player.name)
+            players.add(event.player)
             if len(players) == 2: # read as long as it takes to find both players
                 break
 
-    assert len(players) == 2
+    if (len(players) != 2):
+        print(replay_file)
+    #assert len(players) == 2
 
-    return zergs
+    return players
 
 def find_last_replay(base_dir):
     all_replays = (os.path.join(base_dir, replay) for replay in os.listdir(base_dir))
