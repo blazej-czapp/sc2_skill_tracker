@@ -35,6 +35,15 @@ def plot_trackers(player_name, trackers, cutoff_time, figure, axeses):
         axes.set_title(tracker.title)
         tracker.plot(axes, cutoff_time)
 
+
+def generate_tracker_data(replay_file, tracker, cutoff=None):
+    rep = sc2reader.load_replay(replay_file)
+    for event in rep.events:
+        tracker.consume_event(event)
+
+    return tracker.get_data(cutoff)
+
+
 def generate_plots(replay_file, cutoff=None, use_pyplot=False):
     """cutoff - plot only until this time in game seconds
     """

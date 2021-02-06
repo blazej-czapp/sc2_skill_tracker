@@ -59,6 +59,9 @@ class LarvaeVsResourcesTracker(object):
                 and str(event.unit.name).startswith(Entity.LARVA)):
             self.larva_count -= 1
 
+    def get_data(self, cutoff):
+        return [event for event in self.data if cutoff is None or event['time'] <= cutoff]
+
     def plot(self, axes, cutoff):
         """
         cutoff: only plot until this time (in in-game seconds)
@@ -69,7 +72,7 @@ class LarvaeVsResourcesTracker(object):
 
         axes.xaxis.set_major_formatter(FuncFormatter(x_to_timestamp))
 
-        events = [event for event in self.data if cutoff is None or event['time'] <= cutoff]
+        events = self.get_data(cutoff)
 
         # has to be contiguous, otherwise bars are separated and thin (i.e. one bar per 10 "seconds")
         x_axis = np.arange(len(events))
