@@ -118,24 +118,22 @@ class InjectTracker(object):
                 #     be right, though - the idle time will just be shifted from before to after the inject
                 inject_intervals.append((event.second, event.second+InjectTracker.INJECT_TIME))
 
-        elif isinstance(event, PlayerLeaveEvent):
-            self.game_end = event.second
-
         elif isinstance(event, UnitBornEvent) \
              and event.unit.name == "Queen" \
              and event.unit.owner.name.startswith(self.player_name) \
              and self.first_queen_time is None:
             self.first_queen_time = event.second
 
-    def plot(self, axes, cutoff):
-        """
-        cutoff: only plot until this time (in in-game seconds)
+
+    def plot(self, axes, cutoff_time):
+        """ cutoff_time - end time for the plot x-axis (so that all plots are aligned)
         """
         def x_to_timestamp(x, pos):
             if x >= 0:
                 return timestamp(real_seconds(x))
 
         axes.xaxis.set_major_formatter(FuncFormatter(x_to_timestamp))
+        axes.set_xlim(right=cutoff_time, auto=True)
 
         # plot hatcheries sorted by hatch_creation time
         sorted_hatcheries = sorted(self.hatchery_history.values(), key=lambda value: value['created'])
@@ -144,20 +142,13 @@ class InjectTracker(object):
             injects = hatch['injects']
             hatch_creation = hatch['created']
 
-            if cutoff is not None and hatch_creation >= cutoff:
-              break # hatcheries are sorted by hatch_creation so no subsequent one will qualify
+            # we should not have consumed events past the requested cutoff_time point
+            assert(hatch_creation <= cutoff_time)
 
-            if hatch_creation >= self.game_end:
-              break # this can happen if one player leaves the game, a hatchery finishes building, and then the replay
-                    # ends
+            life_end = cutoff_time if hatch['destroyed'] is None else hatch['destroyed']
 
-            if cutoff is None:
-              life_end = self.game_end if hatch['destroyed'] is None else hatch['destroyed']
-            else:
-              life_end = min(cutoff, self.game_end) if hatch['destroyed'] is None else min(cutoff, hatch['destroyed'])
-
-            # clamp all inject intervals to game-duration/cutoff or hatchery life time (late or stacked injects could
-            # be computed to finish after the game end)
+            # clamp all inject intervals to plot-duration or hatchery life time (late or stacked injects could
+            # be computed to finish after the plot or even game end)
             clamped_injects = [(min(life_end, interval[0]), min(life_end, interval[1])) for interval in injects]
 
             # plot all injected intervals
@@ -183,7 +174,8 @@ class InjectTracker(object):
                 total_injected = sum([interval[1] - interval[0] for interval in clamped_injects])
                 percentage_injected.append(total_injected / (life_end - inject_possible_time) * 100)
 
-        axes.set_yticks([5*i+1 for i in range(len(percentage_injected))]) # only plot hatheries that existed before cutoff
+        # only plot hatheries that existed before cutoff_time
+        axes.set_yticks([5*i+1 for i in range(len(percentage_injected))])
         axes.set_yticklabels([f"{p:.0f}%" for p in percentage_injected])
 
         idle_legend = mpatches.Patch(color='tab:red', label='idle', alpha=0.75)

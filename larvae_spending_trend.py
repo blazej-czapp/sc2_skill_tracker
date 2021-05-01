@@ -11,7 +11,7 @@ from numpy.polynomial import Polynomial
 
 from pathlib import Path
 
-from .skill_tracker import replays_dir, generate_tracker_data, parse_cutoff
+from .skill_tracker import replays_dir, consume_replay, parse_cutoff
 from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 
 LONG_TERM_COUNT = 100
@@ -26,10 +26,11 @@ if __name__ == '__main__':
     averages = []
     for file in files[:LONG_TERM_COUNT]:
         cutoff = parse_cutoff(CUTOFF)
-        events = generate_tracker_data(str(file.resolve()), LarvaeVsResourcesTracker('orastem'), cutoff)
-        if events[-1]['time'] >= cutoff: # skip replays shorter than cutoff
-            larvae_history = [event['larvae'] for event in events]
-            avg_unspent_larvae = sum(larvae_history) / len(events)
+        tracker = LarvaeVsResourcesTracker('orastem')
+        true_cutoff = consume_replay(str(file.resolve()), [tracker], cutoff)
+        if true_cutoff >= cutoff: # skip replays shorter than cutoff
+            larvae_history = [event['larvae'] for event in tracker.data]
+            avg_unspent_larvae = sum(larvae_history) / len(tracker.data)
             averages.append(avg_unspent_larvae)
 
     # we processed the range of replays in reverse chronological order (newest to oldest) - now reverse the list

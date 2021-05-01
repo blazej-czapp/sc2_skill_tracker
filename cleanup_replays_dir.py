@@ -1,5 +1,5 @@
 """
-Deletes non-competitive games from the replays directory, specifically:
+Deletes non-ladder games from the replays directory, specifically:
  - co-op maps
  - 1v1 games vs AI
  - games with more or fewer than 2 players

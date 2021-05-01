@@ -1,4 +1,5 @@
 import argparse
+import itertools
 import matplotlib.pyplot as plt
 import sc2reader
 import os.path
@@ -6,7 +7,7 @@ import sys
 import time
 
 from matplotlib.figure import Figure
-from sc2reader.events import PlayerStatsEvent
+from sc2reader.events import PlayerLeaveEvent
 
 from .replay_helpers import discover_players, find_last_replay, game_seconds
 from .trackers.DroneTracker import DroneTracker
@@ -19,33 +20,51 @@ REPLAY_PATH_VAR = 'SC2_SKILL_TRACKER_REPLAY_PATH'
 replays_dir = os.path.normpath(os.environ[REPLAY_PATH_VAR]) if REPLAY_PATH_VAR in os.environ else None
 
 def parse_cutoff(arg):
-    """parse string in format mm:ss in real time to game seconds
+    """
+    Parse string in format mm:ss in real time to game seconds
     """
     split = arg.split(":")
     if len(split) != 2:
         raise argparse.ArgumentTypeError("Invalid cutoff time format")
     return game_seconds(int(split[0]) * 60 + int(split[1]))
 
+
 def plot_trackers(player_name, trackers, cutoff_time, figure, axeses):
     # plotting every tracker in a separate Axes of the same Figure
     figure.suptitle(player_name, fontsize=16)
 
+    assert(len(axeses) == len(trackers))
     for i, tracker in enumerate(trackers):
         axes = axeses[i]
         axes.set_title(tracker.title)
         tracker.plot(axes, cutoff_time)
 
 
-def generate_tracker_data(replay_file, tracker, cutoff=None):
+def consume_replay(replay_file, trackers, requested_cutoff=None):
+    """ Returns the lesser of requested_cutoff and game end (replay end or a player leaving, presumably always the
+        latter)
+    """
     rep = sc2reader.load_replay(replay_file)
+    true_cutoff = None
     for event in rep.events:
-        tracker.consume_event(event)
+        if isinstance(event, PlayerLeaveEvent):
+            # we consider the game to be over as soon as either player leaves
+            true_cutoff = min(event.second, requested_cutoff) if requested_cutoff is not None else event.second
+            break
+        elif requested_cutoff is None or event.second <= requested_cutoff:
+            for tracker in trackers:
+                tracker.consume_event(event)
+            true_cutoff = event.second # track last event seen
+        else:
+            break
 
-    return tracker.get_data(cutoff)
+    assert(true_cutoff is not None)
+    return true_cutoff
 
 
-def generate_plots(replay_file, cutoff=None, use_pyplot=False):
-    """cutoff - plot only until this time in game seconds
+def generate_plots(replay_file, requested_cutoff=None, use_pyplot=False):
+    """ Returns a list of matplotlib Figures, one per player, with trackers plotted thereon
+        :param requested_cutoff: - plot at most until this time in game seconds
     """
     zerg_names = [player.name for player in discover_players(replay_file) if player.play_race == "Zerg"]
 
@@ -54,16 +73,13 @@ def generate_plots(replay_file, cutoff=None, use_pyplot=False):
     elif (len(zerg_names) > 2):
         raise SC2SkillTrackerException(f"Too many Zerg players found {len(zerg_names)}, only 1v1 games supported")
 
-    rep = sc2reader.load_replay(replay_file)
-
     all_trackers = [LarvaeVsResourcesTracker, DroneTracker, InjectTracker]
 
     # instantiate and associate all trackers for each player
     player_trackers = { player_name:[tracker(player_name) for tracker in all_trackers] for player_name in zerg_names }
-    for event in rep.events:
-        for player in player_trackers:
-            for tracker in player_trackers[player]:
-                tracker.consume_event(event)
+
+    # provide a flat list of all trackers to consume_replay()
+    true_cutoff = consume_replay(replay_file, list(itertools.chain(*player_trackers.values())), requested_cutoff)
 
     figures = []
     for player in player_trackers:
@@ -76,10 +92,11 @@ def generate_plots(replay_file, cutoff=None, use_pyplot=False):
             fig = Figure(figsize=(18, 12))
             axeses = fig.subplots(len(player_trackers[player]), 1)
 
-        plot_trackers(player, player_trackers[player], cutoff, fig, axeses)
+        plot_trackers(player, player_trackers[player], true_cutoff, fig, axeses)
         figures.append(fig)
 
     return figures
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=f'Default replay search path: {replays_dir}')

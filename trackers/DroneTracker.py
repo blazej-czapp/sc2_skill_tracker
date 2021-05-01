@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib.ticker import FuncFormatter
 from ..replay_helpers import Entity, timestamp, real_seconds
 
-from sc2reader.events import UnitBornEvent, UnitDiedEvent, PlayerLeaveEvent
+from sc2reader.events import UnitBornEvent, UnitDiedEvent
 
 # just a heuristic - the target is number of (real) minutes * 10 (interpolated)
 def target_drone_count(time_axis):
@@ -41,12 +41,10 @@ class DroneTracker(object):
             self.drone_count -= 1
             self.data.append({'time' : event.second,
                               'drones' : self.drone_count})
-        elif isinstance(event, PlayerLeaveEvent):
-            self.game_end = event.second
 
-    def plot(self, axes, cutoff):
-        """
-        cutoff: only plot until this time (in in-game seconds)
+
+    def plot(self, axes, cutoff_time):
+        """ :param cutoff_time: end time for the plot x-axis (so that all plots are aligned)
         """
         def x_to_timestamp(x, pos):
             """ Converts time (in game seconds) into timestamp string (in real minutes and seconds)
@@ -60,16 +58,18 @@ class DroneTracker(object):
                 return timestamp(real_seconds(x))
 
         axes.xaxis.set_major_formatter(FuncFormatter(x_to_timestamp))
+        axes.set_xlim(right=cutoff_time, auto=True)
 
-        plot_end = self.game_end if cutoff is None else min(self.game_end, cutoff)
-        events = [event for event in self.data if event['time'] <= plot_end]
-        actual_x_axis = [event['time'] for event in events]
+        actual_x_axis = [event['time'] for event in self.data]
 
-        # extend until game end so that all graphs align
-        actual_x_axis.append(plot_end)
+        # we should not have consumed events past the requested cutoff_time point
+        assert(self.data[-1]['time'] <= cutoff_time)
+
+        # extend until the requested time so that all graphs align
+        actual_x_axis.append(cutoff_time)
 
         # repeat last recorded drone count at plot end
-        drone_plot, = axes.step(actual_x_axis, [event['drones'] for event in events] + [events[-1]['drones']], color='tab:red', label='drones actual')
+        drone_plot, = axes.step(actual_x_axis, [event['drones'] for event in self.data] + [self.data[-1]['drones']], color='tab:red', label='drones actual')
         target_sub = axes.twinx() # Create a twin Axes sharing the xaxis
 
         # set the same limits so both graphs are scaled the same, i.e. we can visually
@@ -78,7 +78,7 @@ class DroneTracker(object):
 
         # using denser x-axis data to get the inflection point exactly right, otherwise, if no drone was
         # built or killed at that moment, we won't plot it and the target plot will have too many segments
-        target_x_axis = np.arange(plot_end + 1)
+        target_x_axis = np.arange(cutoff_time)
         drone_target_plot, = target_sub.plot(target_x_axis, [x for x in target_drone_count(target_x_axis)], color='tab:blue', label='drones target')
 
         axes.legend(handles=[drone_plot, drone_target_plot], loc='upper left')

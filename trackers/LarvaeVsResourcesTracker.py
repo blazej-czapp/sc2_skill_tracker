@@ -59,40 +59,43 @@ class LarvaeVsResourcesTracker(object):
                 and str(event.unit.name).startswith(Entity.LARVA)):
             self.larva_count -= 1
 
-    def get_data(self, cutoff):
-        return [event for event in self.data if cutoff is None or event['time'] <= cutoff]
-
-    def plot(self, axes, cutoff):
-        """
-        cutoff: only plot until this time (in in-game seconds)
+    def plot(self, axes, cutoff_time):
+        """ cutoff_time - end time for the plot x-axis (so that all plots are aligned)
         """
         def x_to_timestamp(x, pos):
             if x >= 0 and x < len(self.data):
                 return timestamp(real_seconds(self.data[int(x)]['time']))
 
         axes.xaxis.set_major_formatter(FuncFormatter(x_to_timestamp))
+        # the bar plot doesn't use time for x, but ordinals of PlayerStatEvents (otherwise bars come out very thin and
+        # far apart, i.e. one bar every 7 seconds, and nothing in between)
+        # in the effort for all plots to have their x-axis timestamps aligned, we scale the number of data points up
+        # fractionally, so that it corresponds to the same number of seconds as in the requested cutoff_time
+        # it's not pixel-perfect, not sure why
+        xmax = (cutoff_time / self.data[-1]['time']) * len(self.data)
+        axes.set_xlim(right=xmax, auto=True)
 
-        events = self.get_data(cutoff)
+        # we should not have consumed events past the requested cutoff_time point
+        assert(self.data[-1]['time'] <= cutoff_time)
+        x_axis = np.arange(len(self.data))
 
-        # has to be contiguous, otherwise bars are separated and thin (i.e. one bar per 10 "seconds")
-        x_axis = np.arange(len(events))
-
-        mineral_history = [event['minerals'] for event in events]
-        avg_unspent_minerals = int(sum(mineral_history) / len(events))
+        mineral_history = [event['minerals'] for event in self.data]
+        avg_unspent_minerals = int(sum(mineral_history) / len(self.data))
         mineral_plot = axes.bar(x_axis, mineral_history, color='xkcd:sky blue', label='minerals (avg. {:d})'.format(avg_unspent_minerals))
 
-        gas_history = [event['gas'] for event in events]
-        avg_unspent_gas = int(sum(gas_history) / len(events))
+        gas_history = [event['gas'] for event in self.data]
+        avg_unspent_gas = int(sum(gas_history) / len(self.data))
         gas_plot = axes.bar(x_axis, gas_history, bottom=mineral_history, color='xkcd:spring green', label='gas (avg. {:d})'.format(avg_unspent_gas))
 
-        larvae_history = [event['larvae'] for event in events]
-        avg_unspent_larvae = sum(larvae_history) / len(events)
+        larvae_history = [event['larvae'] for event in self.data]
+        avg_unspent_larvae = sum(larvae_history) / len(self.data)
+
         larvae_plot, = axes.twinx().plot(x_axis, larvae_history, color='tab:red', label='larvae (avg. {:.2f}, tot. {:d})'.format(avg_unspent_larvae, self.total_larvae))
 
         # shade the periods the player is supply blocked (has less than 2 supply available)
         # note that we're working with 10s granularity here (game-time), so the shaded regions are generally too wide
         # so we're not summing and printing them
-        for i, event in enumerate(events):
+        for i, event in enumerate(self.data):
             if i == 0:
                 continue
 
