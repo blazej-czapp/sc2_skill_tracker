@@ -25,8 +25,6 @@ def discover_players(replay_file):
     for event in rep.tracker_events:
         if isinstance(event, PlayerStatsEvent):
             players.add(event.player)
-            if len(players) == 2: # read as long as it takes to find both players
-                break
 
     return players
 

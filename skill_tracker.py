@@ -70,8 +70,6 @@ def generate_plots(replay_file, requested_cutoff=None, use_pyplot=False):
 
     if len(zerg_names) == 0:
         raise SC2SkillTrackerException("No Zerg players found")
-    elif (len(zerg_names) > 2):
-        raise SC2SkillTrackerException(f"Too many Zerg players found {len(zerg_names)}, only 1v1 games supported")
 
     all_trackers = [LarvaeVsResourcesTracker, DroneTracker, InjectTracker]
 
