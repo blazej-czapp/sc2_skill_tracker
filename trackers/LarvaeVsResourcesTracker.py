@@ -39,9 +39,11 @@ class LarvaeVsResourcesTracker(object):
             if str(event.unit_type_name).startswith(Entity.LARVA):
                 unit_id = event.unit.id
                 assert event.unit.name == Entity.LARVA
-                # presumably a unit just hatched - this larva should die immediately after this
+                # presumably, a unit just hatched - this larva should die immediately after this (so don't increment
+                # total_larvae, which is meant to count efficiency of larva production and injects - it would be great
+                # to just stop tracking UnitTypeChangeEvent entirely, but we do need to decrement larva_count when
+                # they turn into eggs)
                 self.larva_count += 1
-                self.total_larvae += 1
             # sometimes eggs change into eggs, don't know what it means - ignoring those events
             elif str(event.unit_type_name).startswith(Entity.EGG) and not event.unit.name.startswith(Entity.EGG):
                 # assuming only larva can change into egg
