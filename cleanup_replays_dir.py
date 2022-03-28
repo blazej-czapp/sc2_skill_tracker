@@ -3,12 +3,10 @@ Deletes non-ladder games from the replays directory, specifically:
  - co-op maps
  - 1v1 games vs AI
  - games with more or fewer than 2 players
+ - *.writeCacheBackup files
 """
 
-import sc2reader
-
 import os
-import sys
 
 from .skill_tracker import replays_dir
 from .replay_helpers import discover_players
@@ -22,6 +20,12 @@ coop_maps = ["Void Thrashing", "Void Launch", "Oblivion Express", "Rifts to Korh
 def run():
     for (i, f) in enumerate(files):
         abspath = os.path.join(replays_dir, f)
+
+        # don't know where these come from
+        if abspath.endswith('.writeCacheBackup'):
+            os.remove(abspath)
+            continue
+
         print(f"processing: {(i+1)/len(files)*100:.1f}%\r", end = "")
 
         if any([coop_name in abspath for coop_name in coop_maps]):
