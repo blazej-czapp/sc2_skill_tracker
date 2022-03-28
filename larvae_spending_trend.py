@@ -11,7 +11,7 @@ from numpy.polynomial import Polynomial
 
 from pathlib import Path
 
-from .skill_tracker import replays_dir, consume_replay, parse_cutoff
+from .skill_tracker import replays_dir, consume_replay, parse_timestamp
 from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 
 LONG_TERM_COUNT = 100
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     averages = []
     for file in files[:LONG_TERM_COUNT]:
-        cutoff = parse_cutoff(CUTOFF)
+        cutoff = parse_timestamp(CUTOFF)
         tracker = LarvaeVsResourcesTracker('orastem')
         true_cutoff = consume_replay(str(file.resolve()), [tracker], cutoff)
         if true_cutoff >= cutoff: # skip replays shorter than cutoff

@@ -19,7 +19,7 @@ REPLAY_PATH_VAR = 'SC2_SKILL_TRACKER_REPLAY_PATH'
 
 replays_dir = os.path.normpath(os.environ[REPLAY_PATH_VAR]) if REPLAY_PATH_VAR in os.environ else None
 
-def parse_cutoff(arg):
+def parse_timestamp(arg):
     """
     Parse string in format mm:ss in real time to game seconds
     """
@@ -99,7 +99,7 @@ def generate_plots(replay_file, requested_cutoff=None, use_pyplot=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=f'Default replay search path: {replays_dir}')
     # both optional
-    parser.add_argument('-u', '--until', type=parse_cutoff, dest='cutoff', action='store', help='cutoff time in format mm:ss')
+    parser.add_argument('-u', '--until', type=parse_timestamp, dest='cutoff', action='store', help='cutoff time in format mm:ss')
     parser.add_argument("replay_file", nargs='?', help='Name of the replay file (absolute path or relative to replay search path). Latest replay if omitted.')
     args = parser.parse_args()
 
