@@ -13,6 +13,7 @@ from .replay_helpers import discover_players, find_last_replay, game_seconds
 from .trackers.DroneTracker import DroneTracker
 from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 from .trackers.InjectTracker import InjectTracker
+from .trackers.UpgradeTracker import UpgradeTracker
 from .SC2SkillTrackerException import SC2SkillTrackerException
 
 REPLAY_PATH_VAR = 'SC2_SKILL_TRACKER_REPLAY_PATH'
@@ -29,8 +30,9 @@ def parse_timestamp(arg):
     return game_seconds(int(split[0]) * 60 + int(split[1]))
 
 
-def plot_trackers(player_name, trackers, cutoff_time, figure, axeses):
-    # plotting every tracker in a separate Axes of the same Figure
+def plot_trackers(player_name, trackers, subsidiary_trackers, cutoff_time, figure, axeses):
+    # plotting every tracker in a separate Axes of the same Figure, except subsidiary trackers,
+    # which share plots with other trackers
     figure.suptitle(player_name, fontsize=16)
 
     assert(len(axeses) == len(trackers))
@@ -38,6 +40,10 @@ def plot_trackers(player_name, trackers, cutoff_time, figure, axeses):
         axes = axeses[i]
         axes.set_title(tracker.title)
         tracker.plot(axes, cutoff_time)
+
+        for sub_tracker in subsidiary_trackers:
+            if sub_tracker.can_share_plot_with(tracker):
+                sub_tracker.plot(axes, cutoff_time)
 
 
 def consume_replay(replay_file, trackers, requested_cutoff=None):
@@ -75,9 +81,12 @@ def generate_plots(replay_file, requested_cutoff=None, use_pyplot=False):
 
     # instantiate and associate all trackers for each player
     player_trackers = { player_name:[tracker(player_name) for tracker in all_trackers] for player_name in zerg_names }
+    # subsidiary trackers expose can_share_plot_with() method which tell us which other trackers they're happy to share
+    # axes with (e.g. upgrades can be plotted on any timeline, they don't need their dedicated plot)
+    subsidiary_trackers = { player_name:[UpgradeTracker(player_name)] for player_name in zerg_names }
 
     # provide a flat list of all trackers to consume_replay()
-    true_cutoff = consume_replay(replay_file, list(itertools.chain(*player_trackers.values())), requested_cutoff)
+    true_cutoff = consume_replay(replay_file, list(itertools.chain(*player_trackers.values())) + list(itertools.chain(*subsidiary_trackers.values())), requested_cutoff)
 
     figures = []
     for player in player_trackers:
@@ -90,7 +99,7 @@ def generate_plots(replay_file, requested_cutoff=None, use_pyplot=False):
             fig = Figure(figsize=(18, 12))
             axeses = fig.subplots(len(player_trackers[player]), 1)
 
-        plot_trackers(player, player_trackers[player], true_cutoff, fig, axeses)
+        plot_trackers(player, player_trackers[player], subsidiary_trackers[player], true_cutoff, fig, axeses)
         figures.append(fig)
 
     return figures
