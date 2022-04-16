@@ -1,7 +1,7 @@
 import numpy as np
 
 from matplotlib.ticker import FuncFormatter
-from ..replay_helpers import Entity, timestamp, real_seconds
+from ..replay_helpers import Entity, timestamp, real_seconds, game_seconds
 
 from sc2reader.events import UnitBornEvent, UnitDiedEvent
 
@@ -9,8 +9,12 @@ from sc2reader.events import UnitBornEvent, UnitDiedEvent
 def target_drone_count(time_axis):
     for time in time_axis:
         min_sec = [int(x) for x in timestamp(real_seconds(time)).split(':')]
-        if min_sec[0] >= 7:
-            yield 70
+        if min_sec[0] >= 8:
+            yield 80
+        elif real_seconds(time) < 133:
+            # 13 drones at second 0 (including the one immediately queued) and it seems like
+            # 22 drones are normally hit at 2:12 (real seconds)
+            yield 13 + time/game_seconds(132) * 9
         else:
             yield min_sec[0] * 10 + (min_sec[1] / 60) * 10
 
