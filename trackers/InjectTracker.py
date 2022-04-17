@@ -134,6 +134,7 @@ class InjectTracker(object):
 
         # we should not have consumed events past the requested cutoff_time point
         assert(hatch_creation <= cutoff_time)
+        assert(hatchery['destroyed'] is None or hatchery['destroyed'] <= cutoff_time)
 
         hatch_cutoff = cutoff_time if hatchery['destroyed'] is None else hatchery['destroyed']
 
@@ -143,7 +144,7 @@ class InjectTracker(object):
 
         # don't count time before the first queen is born as missed inject time
         inject_possible_time = earliest_possible_inject(hatch_creation, self.first_queen_time, hatch_cutoff)
-        if inject_possible_time is None:
+        if inject_possible_time is None or hatch_cutoff - inject_possible_time == 0:
             proportion_injected = 0
         else:
             total_injected = sum([interval[1] - interval[0] for interval in clamped_injects])
