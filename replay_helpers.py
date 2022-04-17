@@ -35,7 +35,7 @@ def find_last_replay(base_dir):
     # leave only regular files, insert creation date
     all_replays = ((stat[ST_CTIME], path) for stat, path in all_replays if S_ISREG(stat[ST_MODE]))
 
-    return max(all_replays, key = lambda f: f[0])[1]        
+    return max(all_replays, key = lambda f: f[0])[1]
 
 class Entity(object):
 	LARVA = 'Larva'
