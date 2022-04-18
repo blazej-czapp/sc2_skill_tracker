@@ -1,20 +1,20 @@
 import argparse
 import itertools
-import matplotlib.pyplot as plt
-import sc2reader
 import os.path
 import sys
 import time
 
+import matplotlib.pyplot as plt
+import sc2reader
 from matplotlib.figure import Figure
 from sc2reader.events import PlayerLeaveEvent
 
 from .replay_helpers import discover_players, find_last_replay, game_seconds
-from .trackers.DroneTracker import DroneTracker
-from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
-from .trackers.InjectTracker import InjectTracker
-from .trackers.UpgradeTracker import UpgradeTracker
 from .SC2SkillTrackerException import SC2SkillTrackerException
+from .trackers.DroneTracker import DroneTracker
+from .trackers.InjectTracker import InjectTracker
+from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
+from .trackers.UpgradeTracker import UpgradeTracker
 
 REPLAY_PATH_VAR = 'SC2_SKILL_TRACKER_REPLAY_PATH'
 
@@ -105,7 +105,7 @@ def generate_plots(replay_file, requested_cutoff=None, use_pyplot=False):
     return figures
 
 
-if __name__ == '__main__':
+def run():
     parser = argparse.ArgumentParser(description=f'Default replay search path: {replays_dir}')
     # both optional
     parser.add_argument('-u', '--until', type=parse_timestamp, dest='cutoff', action='store', help='cutoff time in format mm:ss')
@@ -135,3 +135,7 @@ if __name__ == '__main__':
     except SC2SkillTrackerException as e:
         print("Error: " + str(e))
         sys.exit(1)
+
+
+if __name__ == '__main__':
+    run()
