@@ -107,6 +107,7 @@ if __name__ == '__main__':
                 # a replay only counts towards the total if all trends consumed it successfully
                 # (could do it with any(), let's see how it goes)
                 processed += 1
+                print(f"processing: {(processed)/args.number_of_replays*100:.1f}%\r", end = "")
 
         except StopIteration:
             break # ran out of replays, that's fine
