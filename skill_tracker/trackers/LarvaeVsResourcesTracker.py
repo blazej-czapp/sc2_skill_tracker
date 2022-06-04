@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.patches as mpatches
 import numpy as np
 
@@ -15,6 +16,10 @@ class LarvaeVsResourcesTracker(object):
         self.total_larvae = 0
         self.title = "Resources vs larvae"
 
+        # from the latest PlayerStatsEvent
+        self.minerals_used_current = 0 # "The total mineral cost of all current things" (army, economy, research)
+        self.minerals_lost = 0 # The total mineral cost of all army units (buildings?) lost
+
     def consume_event(self, event):
         if isinstance(event, PlayerStatsEvent) and event.player.name.startswith(self.player_name):
             # including our counts alongside game's periodic stats
@@ -26,6 +31,9 @@ class LarvaeVsResourcesTracker(object):
                               'gas' : event.vespene_current,
                               'larvae' : self.larva_count
                              })
+            self.minerals_lost = event.minerals_lost
+            self.minerals_used_current = event.minerals_used_current
+
         elif isinstance(event, UnitTypeChangeEvent) and event.unit.owner.name.startswith(self.player_name):
             # event.unit_type_name is what the unit changed into; event.unit is the unit itself;
             # Notionally, the unit referenced by 'event.unit' doesn't change with these events, but in case of
@@ -83,7 +91,14 @@ class LarvaeVsResourcesTracker(object):
 
         mineral_history = [event['minerals'] for event in self.data]
         avg_unspent_minerals = int(sum(mineral_history) / len(self.data))
-        mineral_plot = axes.bar(x_axis, mineral_history, color='xkcd:sky blue', label='minerals (avg. {:d})'.format(avg_unspent_minerals))
+
+        # you start the game with 50 minerals, those are not mined
+        total_minerals_mined = self.minerals_lost + self.minerals_used_current + self.data[-1]['minerals'] - 50
+
+        mineral_plot = axes.bar(x_axis, mineral_history, color='xkcd:sky blue', label=f'minerals (avg: {avg_unspent_minerals:d}, total: {total_minerals_mined})')
+
+        # this grossly undercounts gas mined, don't know where else to look (names matching those in sc2reader)
+        # total_gas_mined = self.vespene_lost + self.vespene_used_current + self.vespene_used_in_progress + self.data[-1]['gas'] + self.vespene_used_active_forces
 
         gas_history = [event['gas'] for event in self.data]
         avg_unspent_gas = int(sum(gas_history) / len(self.data))

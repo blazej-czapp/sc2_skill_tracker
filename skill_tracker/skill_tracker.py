@@ -85,8 +85,10 @@ def generate_plots(replay_file, requested_cutoff=None, use_pyplot=False):
     # axes with (e.g. upgrades can be plotted on any timeline, they don't need their dedicated plot)
     subsidiary_trackers = { player_name:[UpgradeTracker(player_name)] for player_name in zerg_names }
 
+    # TODO check that this actually lines up with player stat events
+    clamped_cutoff = requested_cutoff // 10 * 10 if requested_cutoff is not None else requested_cutoff #TODO check corner cases, e.g. clamping to zero
     # provide a flat list of all trackers to consume_replay()
-    true_cutoff = consume_replay(replay_file, list(itertools.chain(*player_trackers.values())) + list(itertools.chain(*subsidiary_trackers.values())), requested_cutoff)
+    true_cutoff = consume_replay(replay_file, list(itertools.chain(*player_trackers.values())) + list(itertools.chain(*subsidiary_trackers.values())), clamped_cutoff)
 
     figures = []
     for player in player_trackers:
