@@ -13,7 +13,8 @@ from numpy.polynomial import Polynomial
 
 from pathlib import Path
 
-from .skill_tracker import replays_dir, consume_replay, parse_timestamp
+from .plotter import consume_replay
+from .replay_helpers import replays_dir, parse_timestamp
 from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 from .trackers.InjectTracker import InjectTracker
 

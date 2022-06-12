@@ -1,3 +1,3 @@
-from . import skill_tracker
+from . import plotter
 
-skill_tracker.run()
+plotter.run()

@@ -29,7 +29,7 @@ class LarvaeVsResourcesTracker(object):
                               'time' : event.second,
                               'minerals' : event.minerals_current,
                               'gas' : event.vespene_current,
-                              'larvae' : self.larva_count
+                              'larvae' : self.larva_count,
                              })
             self.minerals_lost = event.minerals_lost
             self.minerals_used_current = event.minerals_used_current
@@ -102,7 +102,11 @@ class LarvaeVsResourcesTracker(object):
 
         gas_history = [event['gas'] for event in self.data]
         avg_unspent_gas = int(sum(gas_history) / len(self.data))
-        gas_plot = axes.bar(x_axis, gas_history, bottom=mineral_history, color='xkcd:spring green', label='gas (avg. {:d})'.format(avg_unspent_gas))
+
+        # this grossly undercounts gas mined, don't know where else to look (names matching those in sc2reader)
+        # total_gas_mined = self.vespene_lost + self.vespene_used_current + self.vespene_used_in_progress + self.data[-1]['gas'] + self.vespene_used_active_forces
+
+        gas_plot = axes.bar(x_axis, gas_history, bottom=mineral_history, color='xkcd:spring green', label=f'gas')
 
         larvae_history = [event['larvae'] for event in self.data]
         avg_unspent_larvae = sum(larvae_history) / len(self.data)

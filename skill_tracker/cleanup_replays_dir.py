@@ -10,8 +10,7 @@ import os
 import argparse
 from pathlib import Path
 
-from .skill_tracker import replays_dir
-from .replay_helpers import discover_players
+from .replay_helpers import replays_dir, discover_players
 
 
 files = iter(sorted(Path(replays_dir).iterdir(), key = lambda f: f.stat().st_ctime, reverse=True))

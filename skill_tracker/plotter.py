@@ -9,25 +9,12 @@ import sc2reader
 from matplotlib.figure import Figure
 from sc2reader.events import PlayerLeaveEvent
 
-from .replay_helpers import discover_players, find_last_replay, game_seconds
+from .replay_helpers import replays_dir, discover_players, find_last_replay, game_seconds, real_seconds, parse_timestamp
 from .SC2SkillTrackerException import SC2SkillTrackerException
 from .trackers.DroneTracker import DroneTracker
 from .trackers.InjectTracker import InjectTracker
 from .trackers.LarvaeVsResourcesTracker import LarvaeVsResourcesTracker
 from .trackers.UpgradeTracker import UpgradeTracker
-
-REPLAY_PATH_VAR = 'SC2_SKILL_TRACKER_REPLAY_PATH'
-
-replays_dir = os.path.normpath(os.environ[REPLAY_PATH_VAR]) if REPLAY_PATH_VAR in os.environ else None
-
-def parse_timestamp(arg):
-    """
-    Parse string in format mm:ss in real time to game seconds
-    """
-    split = arg.split(":")
-    if len(split) != 2:
-        raise argparse.ArgumentTypeError("Invalid cutoff time format")
-    return game_seconds(int(split[0]) * 60 + int(split[1]))
 
 
 def plot_trackers(player_name, trackers, subsidiary_trackers, cutoff_time, figure, axeses):
@@ -48,7 +35,7 @@ def plot_trackers(player_name, trackers, subsidiary_trackers, cutoff_time, figur
 
 def consume_replay(replay_file, trackers, requested_cutoff=None):
     """ Returns the lesser of requested_cutoff and game end (replay end or a player leaving, presumably always the
-        latter)
+        latter even if all buildings are destroyed?)
     """
     rep = sc2reader.load_replay(replay_file)
     true_cutoff = None
@@ -111,6 +98,7 @@ def run():
     parser = argparse.ArgumentParser(description=f'Default replay search path: {replays_dir}')
     # both optional
     parser.add_argument('-u', '--until', type=parse_timestamp, dest='cutoff', action='store', help='cutoff time in format mm:ss')
+    parser.add_argument('-b', '--build-order', type=str, dest='build_order', action='store', help='path to build order json file')
     parser.add_argument("replay_file", nargs='?', help='Name of the replay file (absolute path or relative to replay search path). Latest replay if omitted.')
     args = parser.parse_args()
 
