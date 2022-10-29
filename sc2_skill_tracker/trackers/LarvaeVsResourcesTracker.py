@@ -111,7 +111,9 @@ class LarvaeVsResourcesTracker(object):
         larvae_history = [event['larvae'] for event in self.data]
         avg_unspent_larvae = sum(larvae_history) / len(self.data)
 
-        larvae_plot, = axes.twinx().plot(x_axis, larvae_history, color='tab:red', label='larvae (avg. {:.2f}, tot. {:d})'.format(avg_unspent_larvae, self.total_larvae))
+        twin = axes.twinx()
+        twin.set_ylim(top=20)
+        larvae_plot, = twin.plot(x_axis, larvae_history, color='tab:red', label='larvae (avg. {:.2f}, tot. {:d})'.format(avg_unspent_larvae, self.total_larvae))
 
         # shade the periods the player is supply blocked (has less than 2 supply available)
         # note that we're working with 10s granularity here (game-time), so the shaded regions are generally too wide
